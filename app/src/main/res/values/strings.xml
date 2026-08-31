@@ -1,0 +1,185 @@
+<resources>
+    <string name="app_name">Medication Reminder App</string>
+    <string name="action_settings">Settings</string>
+    <!-- Strings used for fragments for navigation -->
+    <string name="first_fragment_label">First Fragment</string>
+    <string name="second_fragment_label">Second Fragment</string>
+    <string name="next">Next</string>
+    <string name="previous">Previous</string>
+
+    <string name="taken_format">%1$d/%2$d</string>
+    <string name="about_text">
+        Your personal medication companion, designed to make health management simpler and safer.
+    </string>
+    <string name="about_tagline">Your health, digitally organized</string>
+    <string name="about_features_title">Features</string>
+    <string name="about_feature_scan">Smart OCR scanning with AI-powered text extraction</string>
+    <string name="about_feature_reminders">Customizable medication reminders</string>
+    <string name="about_feature_tracking">Medication history and adherence tracking</string>
+    <string name="about_feature_escalation">Escalation alerts for missed doses</string>
+    <string name="btn_close">Close</string>
+
+    <string name="desc_home">Home Schedule</string>
+    <string name="desc_history">Medication History</string>
+    <string name="desc_scan">Scan Prescription</string>
+    <string name="desc_camera_icon">Camera Icon</string>
+    <string name="desc_online">Online Medical Info</string>
+    <string name="desc_settings">App Settings</string>
+    <string name="desc_rescan">Rescan Image</string>
+    <string name="desc_more_options">More Options</string>
+    <string name="desc_mark_taken">Mark as taken</string>
+
+    <string name="nav_home">Home</string>
+    <string name="nav_history">History</string>
+    <string name="nav_search">Search</string>
+    <string name="nav_settings">Settings</string>
+    <string name="version_format">Version %1$s</string>
+    <string name="app_version">1.0.0</string>
+
+    <!-- Main Activity UI -->
+    <string name="title_active_meds">Active Meds</string>
+    <string name="title_completed">Completed</string>
+    <string name="title_current_schedule">CURRENT SCHEDULE</string>
+    <string name="btn_manual_add">+ Manual Add</string>
+    <string name="msg_schedule_clear">Schedule Clear</string>
+
+    <!-- Scan Overlay -->
+    <string name="scan_guide_title">Position Prescription</string>
+    <string name="scan_guide_subtitle">Ensure text is clear and within the frame for best results.</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="btn_start_scan">Start Scan</string>
+
+    <!-- Loading Overlay -->
+    <string name="loading_main">AI is performing a deep scan...</string>
+    <string name="loading_sub">Deciphering handwriting and cursive. Please wait...</string>
+
+    <!-- Online Search -->
+    <string name="hint_search_medicine">Search medicine info...</string>
+    <string name="msg_no_internet">No Internet connection</string>
+    <string name="msg_check_network">Check your network and try again.</string>
+    <string name="desc_no_internet_icon">No Internet Icon</string>
+    <string name="desc_search_icon">Search Icon</string>
+
+    <!-- Settings -->
+    <string name="title_settings">Settings</string>
+    <string name="label_app_theme">App Theme</string>
+    <string name="label_notifications">Notification Preferences</string>
+    <string name="pref_sound">System Sound</string>
+    <string name="pref_vibrate">Vibrations</string>
+    <string name="pref_banners">Lockscreen Banners</string>
+    <string name="btn_done">Done</string>
+    <string name="label_clear_history">Clear History</string>
+    <string name="label_export_history">Export History (CSV)</string>
+    <string name="label_about_app">About the App</string>
+    <string name="about_legal">© 2026 Medication Reminder App. All rights reserved.</string>
+    <string name="label_did_you_mean">Did you mean: </string>
+    <string name="label_form">FORM</string>
+    <string name="label_indication">INDICATION</string>
+    <string name="label_adult_dosage">ADULT DOSAGE</string>
+    <string name="label_pediatric_dosage">PEDIATRIC DOSAGE</string>
+    <string name="label_route">ROUTE OF ADMINISTRATION</string>
+    <string name="label_timing">TIMING &amp; FREQUENCY</string>
+    <string name="label_side_effects">COMMON SIDE EFFECTS</string>
+    <string name="label_contraindications">CONTRAINDICATIONS &amp; WARNINGS</string>
+
+    <!-- History -->
+    <string name="title_taken_today">TAKEN TODAY</string>
+
+    <!-- Alarm -->
+    <string name="alarm_title">Medication Reminder</string>
+    <string name="btn_i_took_it">I TOOK IT</string>
+    <string name="btn_snooze">SNOOZE (15 MIN)</string>
+    <string name="btn_dismiss">DISMISS</string>
+
+    <!-- Toasts and Dialogs -->
+    <string name="dialog_clear_history_title">Clear History</string>
+    <string name="dialog_clear_history_msg">Are you sure you want to clear all medication history?</string>
+    <string name="btn_clear">Clear</string>
+    <string name="toast_history_cleared">History cleared</string>
+    <string name="toast_capture_failed">Failed to capture high-res image</string>
+    <string name="toast_no_image_selected">No image selected</string>
+    <string name="toast_med_deleted">Medication deleted</string>
+    <string name="toast_med_not_found">No such Medicine was found</string>
+    <string name="msg_confirmed_taken">Confirmed taken</string>
+    <string name="msg_snoozed">Snoozed for 15 minutes</string>
+
+    <!-- Detail Dialog -->
+    <string name="label_description">DESCRIPTION</string>
+    <string name="label_usage_frequency">USAGE &amp; FREQUENCY</string>
+    <string name="default_description">No description available online.</string>
+    <string name="default_frequency">As prescribed</string>
+    <string name="desc_back">Back</string>
+    <string name="label_warnings">CRITICAL WARNINGS</string>
+    <string name="label_interactions">INTERACTIONS</string>
+    <string name="label_storage">STORAGE &amp; HANDLING</string>
+    <string name="source_disclaimer">Source: Clinical data retrieved from Drugs.com records</string>
+    <string name="title_reliability_guide">Ensure Reliable Reminders</string>
+    <string name="desc_reliability_guide">Android often stops background apps to save battery. Follow these steps to ensure your medication alarms always ring.</string>
+    <string name="label_step_battery">Step 1: Disable Battery Optimization</string>
+    <string name="status_pending">Status: Pending</string>
+    <string name="status_optimized">Status: Optimized (Recommended)</string>
+    <string name="status_restricted">Status: Restricted</string>
+    <string name="status_granted">Status: Granted</string>
+    <string name="status_required">Status: Required</string>
+    <string name="desc_battery_opt">Allow the app to run without restrictions. This prevents the system from \'killing\' your alarms.</string>
+    <string name="btn_configure_now">Configure Now</string>
+    <string name="label_step_autostart">Step 2: Enable Auto-Start</string>
+    <string name="desc_autostart">Ensure the app can start itself after your phone restarts or when an alarm is due.</string>
+    <string name="status_done">Status: Done</string>
+    <string name="btn_open_settings">Open Device Settings</string>
+    <string name="label_step_exact">Step 3: Precise Alarm Permission</string>
+    <string name="desc_exact_alarm">Needed to deliver notifications at the exact second they are due.</string>
+    <string name="btn_grant_permission">Grant Permission</string>
+    <string name="btn_completed_steps">I\'ve Completed the Steps</string>
+    <string name="msg_battery_guide_prompt">Your alarms may not ring due to system restrictions. Follow our guide to ensure you never miss a dose.</string>
+    <string name="btn_view_guide">View Guide</string>
+    <string name="status_waiting_step_1">Waiting for Step 1</string>
+    <string name="status_waiting_steps_1_2">Waiting for Steps 1 &amp; 2</string>
+    <string name="confirm_title">Are you sure?</string>
+    <string name="confirm_default_msg">This action cannot be undone.</string>
+    <string name="btn_confirm">Confirm</string>
+    <string name="desc_warning_icon">Warning Icon</string>
+    <string name="confirm_delete_title">Delete Medication</string>
+    <string name="confirm_delete_msg">Are you sure you want to delete %1$s? This will also cancel all scheduled reminders for it.</string>
+    <string name="header_recent_searches">RECENT SEARCHES</string>
+    <string name="header_suggestions">SUGGESTIONS</string>
+    <string name="btn_view_on_drugs_com">View on Drugs.com</string>
+
+
+    <string name="lorem_ipsum">
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam in scelerisque sem. Mauris
+        volutpat, dolor id interdum ullamcorper, risus dolor egestas lectus, sit amet mattis purus
+        dui nec risus. Maecenas non sodales nisi, vel dictum dolor. Class aptent taciti sociosqu ad
+        litora torquent per conubia nostra, per inceptos himenaeos. Suspendisse blandit eleifend
+        diam, vel rutrum tellus vulputate quis. Aliquam eget libero aliquet, imperdiet nisl a,
+        ornare ex. Sed rhoncus est ut libero porta lobortis. Fusce in dictum tellus.\n\n
+        Suspendisse interdum ornare ante. Aliquam nec cursus lorem. Morbi id magna felis. Vivamus
+        egestas, est a condimentum egestas, turpis nisl iaculis ipsum, in dictum tellus dolor sed
+        neque. Morbi tellus erat, dapibus ut sem a, iaculis tincidunt dui. Interdum et malesuada
+        fames ac ante ipsum primis in faucibus. Curabitur et eros porttitor, ultricies urna vitae,
+        molestie nibh. Phasellus at commodo eros, non aliquet metus. Sed maximus nisl nec dolor
+        bibendum, vel congue leo egestas.\n\n
+        Sed interdum tortor nibh, in sagittis risus mollis quis. Curabitur mi odio, condimentum sit
+        amet auctor at, mollis non turpis. Nullam pretium libero vestibulum, finibus orci vel,
+        molestie quam. Fusce blandit tincidunt nulla, quis sollicitudin libero facilisis et. Integer
+        interdum nunc ligula, et fermentum metus hendrerit id. Vestibulum lectus felis, dictum at
+        lacinia sit amet, tristique id quam. Cras eu consequat dui. Suspendisse sodales nunc ligula,
+        in lobortis sem porta sed. Integer id ultrices magna, in luctus elit. Sed a pellentesque
+        est.\n\n
+        Aenean nunc velit, lacinia sed dolor sed, ultrices viverra nulla. Etiam a venenatis nibh.
+        Morbi laoreet, tortor sed facilisis varius, nibh orci rhoncus nulla, id elementum leo dui
+        non lorem. Nam mollis ipsum quis auctor varius. Quisque elementum eu libero sed commodo. In
+        eros nisl, imperdiet vel imperdiet et, scelerisque a mauris. Pellentesque varius ex nunc,
+        quis imperdiet eros placerat ac. Duis finibus orci et est auctor tincidunt. Sed non viverra
+        ipsum. Nunc quis augue egestas, cursus lorem at, molestie sem. Morbi a consectetur ipsum, a
+        placerat diam. Etiam vulputate dignissim convallis. Integer faucibus mauris sit amet finibus
+        convallis.\n\n
+        Phasellus in aliquet mi. Pellentesque habitant morbi tristique senectus et netus et
+        malesuada fames ac turpis egestas. In volutpat arcu ut felis sagittis, in finibus massa
+        gravida. Pellentesque id tellus orci. Integer dictum, lorem sed efficitur ullamcorper,
+        libero justo consectetur ipsum, in mollis nisl ex sed nisl. Donec maximus ullamcorper
+        sodales. Praesent bibendum rhoncus tellus nec feugiat. In a ornare nulla. Donec rhoncus
+        libero vel nunc consequat, quis tincidunt nisl eleifend. Cras bibendum enim a justo luctus
+        vestibulum. Fusce dictum libero quis erat maximus, vitae volutpat diam dignissim.
+    </string>
+</resources>

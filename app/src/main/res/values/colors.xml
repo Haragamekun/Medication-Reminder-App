@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <!-- Semantic Colors -->
+    <color name="app_background">#F0F4F8</color>
+    <color name="text_primary">#1E293B</color>
+    <color name="text_secondary">#475569</color>
+    <color name="accent_teal">#06B6D4</color> <!-- Cyan/Teal -->
+    <color name="accent_purple">#8B5CF6</color> <!-- Purple for contrast -->
+    <color name="glass_card_bg">#CCFFFFFF</color>
+    <color name="glass_stroke">#1A000000</color>
+    <color name="nav_selected">#06B6D4</color>
+    <color name="nav_unselected">#94A3B8</color>
+
+    <!-- UI Perfection Colors -->
+    <color name="overlay_background">#CC0F172A</color>
+    <color name="loading_overlay_background">#E60F172A</color>
+    <color name="accent_teal_dark">#0891B2</color>
+    <color name="text_hint">#94A3B8</color>
+    <color name="snooze_orange">#F59E0B</color>
+    <color name="history_label">#64748B</color>
+    <color name="grid_card_bg">#F8FAFC</color>
+    <color name="status_pill_taken">#D1FAE5</color>
+    <color name="status_pill_taken_text">#059669</color>
+    <color name="status_pill_pending">#FEF3C7</color>
+    <color name="status_pill_pending_text">#D97706</color>
+    <color name="button_stroke">#475569</color>
+</resources>

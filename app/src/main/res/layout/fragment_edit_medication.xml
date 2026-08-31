@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@color/app_background"
+    android:padding="24dp">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="20dp">
+
+        <TextView
+            android:id="@+id/tvSheetTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Medication Intel"
+            android:textColor="@color/text_primary"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"/>
+
+        <LinearLayout
+            android:id="@+id/verificationBanner"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_toEndOf="@id/tvSheetTitle"
+            android:layout_marginStart="12dp"
+            android:layout_centerVertical="true"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="4dp"
+            android:background="@drawable/glass_card"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/ivVerificationStatus"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:src="@drawable/baseline_check_24"
+                app:tint="@color/accent_teal"
+                xmlns:app="http://schemas.android.com/apk/res-auto"/>
+
+            <TextView
+                android:id="@+id/tvVerificationStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Verified"
+                android:textColor="@color/accent_teal"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:layout_marginStart="4dp"/>
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/btnRescan"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@android:drawable/ic_menu_rotate"
+            android:background="@drawable/liquid_glass_card"
+            app:tint="@color/accent_teal"
+            xmlns:app="http://schemas.android.com/apk/res-auto"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"/>
+    </RelativeLayout>
+
+    <TextView
+        android:id="@+id/tvVerificationMsg"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="@color/snooze_orange"
+        android:textSize="12sp"
+        android:layout_marginBottom="16dp"
+        android:visibility="gone"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="NAME"
+        android:textColor="@color/text_secondary"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.1"
+        android:layout_marginBottom="6dp"/>
+    <EditText
+        android:id="@+id/etMedicineName"
+        android:layout_width="match_parent"
+        android:layout_height="54dp"
+        android:background="@drawable/liquid_glass_card"
+        android:textColor="@color/text_primary"
+        android:paddingHorizontal="16dp"
+        android:inputType="textPersonName"
+        android:layout_marginBottom="20dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="DOSAGE"
+        android:textColor="@color/text_secondary"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.1"
+        android:layout_marginBottom="6dp"/>
+    <EditText
+        android:id="@+id/etDosage"
+        android:layout_width="match_parent"
+        android:layout_height="54dp"
+        android:background="@drawable/liquid_glass_card"
+        android:textColor="@color/text_primary"
+        android:paddingHorizontal="16dp"
+        android:hint="e.g. 500mg"
+        android:textColorHint="@color/text_secondary"
+        android:inputType="text"
+        android:layout_marginBottom="20dp"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:weightSum="2"
+        android:layout_marginBottom="20dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginEnd="10dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="QUANTITY"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.1"
+                android:layout_marginBottom="6dp"/>
+            <EditText
+                android:id="@+id/etQuantity"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:background="@drawable/liquid_glass_card"
+                android:textColor="@color/text_primary"
+                android:paddingHorizontal="16dp"
+                android:hint="30"
+                android:textColorHint="@color/text_secondary"
+                android:inputType="number"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="10dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="FREQUENCY"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.1"
+                android:layout_marginBottom="6dp"/>
+            <EditText
+                android:id="@+id/etFrequency"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:background="@drawable/liquid_glass_card"
+                android:textColor="@color/text_primary"
+                android:paddingHorizontal="16dp"
+                android:hint="Daily"
+                android:textColorHint="@color/text_secondary"
+                android:inputType="text"/>
+        </LinearLayout>
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="RECEPTION TIME"
+        android:textColor="@color/text_secondary"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.1"
+        android:layout_marginBottom="6dp"/>
+    <Button
+        android:id="@+id/btnSelectTime"
+        android:layout_width="match_parent"
+        android:layout_height="54dp"
+        android:text="Select Reminder Time"
+        android:textColor="@color/text_primary"
+        android:background="@drawable/liquid_glass_card"
+        android:layout_marginBottom="16dp"
+        android:textAllCaps="false"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="ALARM RINGTONE"
+        android:textColor="@color/text_secondary"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.1"
+        android:layout_marginBottom="6dp"/>
+    <Button
+        android:id="@+id/btnSelectRingtone"
+        android:layout_width="match_parent"
+        android:layout_height="54dp"
+        android:text="Default Ringtone"
+        android:textColor="@color/text_primary"
+        android:background="@drawable/liquid_glass_card"
+        android:layout_marginBottom="30dp"
+        android:textAllCaps="false"/>
+
+    <Button
+        android:id="@+id/btnSave"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:text="CONFIRM &amp; SAVE"
+        android:textColor="@color/app_background"
+        android:textStyle="bold"
+        android:backgroundTint="@color/accent_teal"
+        android:elevation="4dp"/>
+</LinearLayout>
