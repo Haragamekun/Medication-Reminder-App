@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="360dp"
+    android:height="360dp"
+    android:viewportWidth="360"
+    android:viewportHeight="360">
+
+    <!-- Subtle Background Medical Grid Lines -->
+    <path
+        android:pathData="M0,60 L360,60 M0,120 L360,120 M0,180 L360,180 M0,240 L360,240 M0,300 L360,300"
+        android:strokeColor="#122E3A5A"
+        android:strokeWidth="1"/>
+
+    <path
+        android:pathData="M60,0 L60,360 M120,0 L120,360 M180,0 L180,360 M240,0 L240,360 M300,0 L300,360"
+        android:strokeColor="#122E3A5A"
+        android:strokeWidth="1"/>
+
+    <!-- Subtle Heartbeat EKG Wave Line -->
+    <path
+        android:pathData="M0,180 L90,180 L105,160 L115,200 L130,135 L148,225 L162,170 L175,180 L360,180"
+        android:strokeColor="#2410B981"
+        android:strokeWidth="2"/>
+</vector>

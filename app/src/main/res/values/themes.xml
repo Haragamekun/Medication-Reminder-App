@@ -1,15 +1,41 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Base.Theme.OCRMedicationApp" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:enforceNavigationBarContrast" tools:targetApi="q">false</item>
+        <item name="android:enforceStatusBarContrast" tools:targetApi="q">false</item>
+        <item name="bottomSheetDialogTheme">@style/CustomBottomSheetDialogTheme</item>
     </style>
 
     <style name="Theme.OCRMedicationApp" parent="Base.Theme.OCRMedicationApp" />
 
     <style name="Theme.App.Starting" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">@drawable/splash_background</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/app_icon_main</item>
+        <item name="windowSplashScreenBackground">#0B0F19</item>
+        <item name="windowSplashScreenAnimatedIcon">@android:color/transparent</item>
         <item name="postSplashScreenTheme">@style/Theme.OCRMedicationApp</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+    </style>
+
+    <style name="CustomBottomSheetDialogTheme" parent="ThemeOverlay.Material3.BottomSheetDialog">
+        <item name="android:windowAnimationStyle">@style/BottomSheetSlideAnimation</item>
+    </style>
+
+    <style name="BottomSheetSlideAnimation">
+        <item name="android:windowEnterAnimation">@anim/slide_in_bottom</item>
+        <item name="android:windowExitAnimation">@anim/slide_out_bottom</item>
+    </style>
+
+    <style name="Theme.OCRMedicationApp.DarkWheelPicker" parent="ThemeOverlay.Material3.Dark">
+        <item name="android:textColorPrimary">#FFFFFF</item>
+        <item name="android:textColorSecondary">#94A3B8</item>
+        <item name="android:editTextColor">#FFFFFF</item>
+        <item name="android:colorControlNormal">#10B981</item>
+        <item name="android:colorControlActivated">#10B981</item>
     </style>
 </resources>

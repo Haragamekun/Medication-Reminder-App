@@ -5,6 +5,9 @@ import android.content.Context
 import android.content.Intent
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -13,6 +16,15 @@ class BootReceiver : BroadcastReceiver() {
             
             val request = OneTimeWorkRequestBuilder<RescheduleWorker>().build()
             WorkManager.getInstance(context).enqueue(request)
+
+            val pendingResult = goAsync()
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    ReliabilityUtils.performMidnightResetIfNeeded(context)
+                } finally {
+                    pendingResult.finish()
+                }
+            }
         }
     }
 }

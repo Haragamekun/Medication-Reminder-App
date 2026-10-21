@@ -1,19 +1,22 @@
 package com.example.ocrmedicationapp
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import com.example.ocrmedicationapp.databinding.ActivityLiveScanBinding
-import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.text.TextRecognition
-import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import kotlinx.coroutines.launch
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -21,16 +24,35 @@ class LiveScanActivity : AppCompatActivity() {
     private lateinit var binding: ActivityLiveScanBinding
     private var camera: Camera? = null
     private lateinit var cameraExecutor: ExecutorService
-    private val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+    private lateinit var ocrWrapper: MlKitOcrWrapper
     private var lastResult = ""
+
+    private val requestCameraPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            startCamera()
+        } else {
+            Toast.makeText(this, "Camera permission is required for live scan", Toast.LENGTH_LONG).show()
+            finish()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableHighRefreshRate()
         binding = ActivityLiveScanBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        ocrWrapper = MlKitOcrWrapper()
+
         cameraExecutor = Executors.newSingleThreadExecutor()
-        startCamera()
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            startCamera()
+        } else {
+            requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
 
         binding.btnFlash.setOnClickListener {
             toggleFlash()
@@ -44,27 +66,46 @@ class LiveScanActivity : AppCompatActivity() {
         }
     }
 
+    private fun enableHighRefreshRate() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val currentDisplay = this.display
+            if (currentDisplay != null) {
+                val modes = currentDisplay.supportedModes
+                val maxMode = modes.maxByOrNull { it.refreshRate }
+                if (maxMode != null) {
+                    window.attributes = window.attributes.apply {
+                        preferredDisplayModeId = maxMode.modeId
+                    }
+                }
+            }
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            window.attributes = window.attributes.apply {
+                preferredRefreshRate = 120f
+            }
+        }
+    }
+
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
         cameraProviderFuture.addListener({
-            val cameraProvider = cameraProviderFuture.get()
-            
-            val preview = Preview.Builder().build().also {
-                it.setSurfaceProvider(binding.viewFinder.surfaceProvider)
-            }
-
-            val imageAnalyzer = ImageAnalysis.Builder()
-                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                .build()
-                .also {
-                    it.setAnalyzer(cameraExecutor) { imageProxy ->
-                        processImageProxy(imageProxy)
-                    }
+            try {
+                val cameraProvider = cameraProviderFuture.get()
+                
+                val preview = Preview.Builder().build().also {
+                    it.setSurfaceProvider(binding.viewFinder.surfaceProvider)
                 }
 
-            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+                val imageAnalyzer = ImageAnalysis.Builder()
+                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                    .build()
+                    .also {
+                        it.setAnalyzer(cameraExecutor) { imageProxy ->
+                            processImageProxy(imageProxy)
+                        }
+                    }
 
-            try {
+                val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+
                 cameraProvider.unbindAll()
                 camera = cameraProvider.bindToLifecycle(
                     this, cameraSelector, preview, imageAnalyzer
@@ -77,23 +118,17 @@ class LiveScanActivity : AppCompatActivity() {
 
     @OptIn(ExperimentalGetImage::class)
     private fun processImageProxy(imageProxy: ImageProxy) {
-        val mediaImage = imageProxy.image
-        if (mediaImage != null) {
-            val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
-            recognizer.process(image)
-                .addOnSuccessListener { visionText ->
-                    val text = visionText.text
-                    if (text.isNotBlank()) {
-                        lastResult = text
-                        binding.tvLiveResult.text = "Detected: ${text.take(30)}..."
-                        binding.btnDone.visibility = View.VISIBLE
-                    }
+        val bitmap = imageProxy.toBitmap()
+        imageProxy.close()
+        if (bitmap != null) {
+            lifecycleScope.launch {
+                val text = ocrWrapper.recognizeText(bitmap)
+                if (text.isNotBlank()) {
+                    lastResult = text
+                    binding.tvLiveResult.text = "Detected: ${text.take(30)}..."
+                    binding.btnDone.visibility = View.VISIBLE
                 }
-                .addOnCompleteListener {
-                    imageProxy.close()
-                }
-        } else {
-            imageProxy.close()
+            }
         }
     }
 
@@ -111,5 +146,6 @@ class LiveScanActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         cameraExecutor.shutdown()
+        ocrWrapper.release()
     }
 }

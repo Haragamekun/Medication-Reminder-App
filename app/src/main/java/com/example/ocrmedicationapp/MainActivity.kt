@@ -16,6 +16,7 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
+import android.util.Log
 import android.os.Bundle
 import android.os.Environment
 import android.provider.Settings
@@ -27,11 +28,21 @@ import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.ImageView
+import android.content.res.ColorStateList
+import android.widget.ProgressBar
 import android.widget.PopupMenu
 import android.view.WindowManager
 import android.widget.TextView
 import android.widget.Toast
+import android.animation.ValueAnimator
+import android.view.animation.AccelerateDecelerateInterpolator
+import android.view.animation.DecelerateInterpolator
+import android.graphics.Color
+import android.speech.RecognizerIntent
+import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
+import androidx.core.view.WindowCompat
+import androidx.core.view.updatePadding
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
@@ -47,11 +58,13 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import com.example.ocrmedicationapp.databinding.ActivityMainBinding
-import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.text.TextRecognition
-import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import coil.load
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -65,7 +78,7 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
 
     private lateinit var binding: ActivityMainBinding
     private val viewModel: PrescriptionViewModel by viewModels()
-    private val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+    private var ocrWrapper: MlKitOcrWrapper? = null
     private var photoUri: Uri? = null
 
     private lateinit var pagerAdapter: MainPagerAdapter
@@ -90,6 +103,36 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
         }
     }
 
+    private val requestNotificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            Toast.makeText(this, "Notifications enabled", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(this, "Notification permission is required for reminders to work", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private val speechToTextLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (::pagerAdapter.isInitialized) {
+            pagerAdapter.stopVoiceSearchAnimation()
+        }
+        if (result.resultCode == RESULT_OK) {
+            val spokenTextList = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+            val spokenText = spokenTextList?.firstOrNull() ?: ""
+            if (spokenText.isNotBlank()) {
+                binding.mainViewPager.currentItem = 2
+                if (::pagerAdapter.isInitialized) {
+                    pagerAdapter.setSearchQuery(spokenText)
+                }
+                viewModel.fetchMedicationInfo(spokenText)
+                Toast.makeText(this, "Searching: \"$spokenText\"", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -102,65 +145,209 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            Log.e("CRITICAL_CRASH", "Crash on ${thread.name}: ${throwable.message}", throwable)
+            // Note: Don't show toast here as we are dying, but log it
+        }
+
+        try {
+            installSplashScreen()
+        } catch (t: Throwable) {
+            Log.e("MainActivity", "SplashScreen failed", t)
+        }
+        
         val prefs = getSharedPreferences("theme_prefs", MODE_PRIVATE)
         val savedMode = prefs.getInt("theme_mode", androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
         androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(savedMode)
 
-        installSplashScreen()
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        
+        try {
+            enableHighRefreshRate()
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+            enableEdgeToEdge(
+                statusBarStyle = SystemBarStyle.auto(
+                    Color.TRANSPARENT,
+                    Color.TRANSPARENT
+                ),
+                navigationBarStyle = SystemBarStyle.auto(
+                    Color.TRANSPARENT,
+                    Color.TRANSPARENT
+                )
+            )
 
-        if (savedInstanceState != null) {
-            photoUri = BundleCompat.getParcelable(savedInstanceState, "photoUri", Uri::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                window.isNavigationBarContrastEnforced = false
+                window.isStatusBarContrastEnforced = false
+            }
+
+            if (savedInstanceState != null) {
+                photoUri = BundleCompat.getParcelable(savedInstanceState, "photoUri", Uri::class.java)
+            }
+
+            binding = ActivityMainBinding.inflate(layoutInflater)
+            setContentView(binding.root)
+
+            // Apply status bar window insets to keep top header cards positioned safely below status bar icons
+            ViewCompat.setOnApplyWindowInsetsListener(binding.mainViewPager) { view, insets ->
+                val statusBarInset = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top
+                view.updatePadding(top = statusBarInset)
+                insets
+            }
+
+            // Raise floating navigation bar comfortably above the system navigation / gesture bar
+            ViewCompat.setOnApplyWindowInsetsListener(binding.bottomNavRow) { view, insets ->
+                val navBarInset = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
+                val density = resources.displayMetrics.density
+                val basePaddingPx = (24 * density).toInt()
+                view.updatePadding(bottom = navBarInset + basePaddingPx)
+                insets
+            }
+
+            // Initialize ML Kit OCR Engine
+            binding.root.postDelayed({
+                lifecycleScope.launch {
+                    try {
+                        Log.d("MainActivity", "Initializing ML Kit OCR Engine")
+                        ocrWrapper = MlKitOcrWrapper()
+                        Log.d("MainActivity", "ML Kit OCR Engine initialized successfully")
+                    } catch (t: Throwable) {
+                        Log.e("MainActivity", "ML Kit OCR background failure: ${t.message}", t)
+                    }
+                }
+            }, 500)
+
+
+
+            setupViewPager()
+            setupClickListeners()
+            observeViewModel()
+            observeMedIntelligence()
+            handleNavigationIntent(intent)
+            
+            // Postpone non-essential tasks to ensure UI stability
+            binding.root.postDelayed({
+                if (!isFinishing) {
+                    viewModel.fetchLiveCatalog()
+                    ReliabilityHeartbeatWorker.enqueue(this)
+                }
+            }, 1000)
+            
+            checkBatteryOptimizations()
+        } catch (t: Throwable) {
+            Log.e("MainActivity", "Critical failure in onCreate", t)
+            Toast.makeText(this, "Safe Boot: Application starting with reduced features", Toast.LENGTH_LONG).show()
         }
+    }
 
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+    private var activeReliabilityDialogView: View? = null
 
-        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
+    override fun onResume() {
+        super.onResume()
+        activeReliabilityDialogView?.let {
+            updateReliabilityModalStatus(it)
         }
-
+        
+        lifecycleScope.launch(Dispatchers.IO) {
+            ReliabilityUtils.performMidnightResetIfNeeded(applicationContext)
+        }
+        
+        // Safe permission request delay
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 101)
+                if (!hasAskedNotifications) {
+                    requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    hasAskedNotifications = true
+                }
             }
         }
-
-        setupViewPager()
-        setupClickListeners()
-        observeViewModel()
-        observeMedIntelligence()
-        
-        viewModel.fetchLiveCatalog()
         checkBatteryOptimizations()
-        ReliabilityHeartbeatWorker.enqueue(this)
     }
 
     companion object {
         private var hasAskedBatterySession = false
+        private var hasAskedNotifications = false
+    }
+
+    private fun enableHighRefreshRate() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val currentDisplay = this.display
+            if (currentDisplay != null) {
+                val modes = currentDisplay.supportedModes
+                val maxMode = modes.maxByOrNull { it.refreshRate }
+                if (maxMode != null) {
+                    window.attributes = window.attributes.apply {
+                        preferredDisplayModeId = maxMode.modeId
+                    }
+                }
+            }
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            window.attributes = window.attributes.apply {
+                preferredRefreshRate = 120f
+            }
+        }
     }
 
     private fun checkBatteryOptimizations() {
         if (hasAskedBatterySession) return
 
+        val prefs = getSharedPreferences("reliability_prefs", MODE_PRIVATE)
+        if (prefs.getBoolean("reliability_guide_completed", false)) {
+            return
+        }
+
         val isBatteryRestricted = ReliabilityUtils.isBatteryOptimized(this)
         val isExactAlarmRequired = !ReliabilityUtils.canScheduleExactAlarms(this)
+        val isNotificationMissing = !ReliabilityUtils.isNotificationPermissionGranted(this)
+        val isMusicAudioMissing = !ReliabilityUtils.isMusicAudioPermissionGranted(this)
+        val isOverlayMissing = !ReliabilityUtils.canDrawOverlays(this)
+        val isUnusedAppActive = !ReliabilityUtils.isUnusedAppRestrictionDisabled(this)
 
-        if (isBatteryRestricted || isExactAlarmRequired) {
-            AlertDialog.Builder(this, R.style.Theme_OCRMedicationApp)
-                .setTitle(getString(R.string.title_reliability_guide))
-                .setMessage(getString(R.string.msg_battery_guide_prompt))
-                .setPositiveButton(getString(R.string.btn_view_guide)) { _, _ ->
-                    onReliabilityGuide()
-                    hasAskedBatterySession = true
-                }
-                .setNegativeButton(getString(R.string.btn_cancel)) { _, _ ->
-                    hasAskedBatterySession = true
-                }
-                .show()
+        if (!isBatteryRestricted && !isExactAlarmRequired && !isNotificationMissing && !isMusicAudioMissing && !isOverlayMissing && !isUnusedAppActive) {
+            prefs.edit { putBoolean("reliability_guide_completed", true) }
+            return
+        }
+
+        if (isBatteryRestricted || isExactAlarmRequired || isNotificationMissing || isMusicAudioMissing || isOverlayMissing || isUnusedAppActive) {
+            val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_reliability_prompt, null)
+            val dialog = AlertDialog.Builder(this, R.style.Theme_OCRMedicationApp)
+                .setView(dialogView)
+                .create()
+
+            dialogView.findViewById<View>(R.id.btnReliabilityGuide).setOnClickListener {
+                dialog.dismiss()
+                onReliabilityGuide()
+                hasAskedBatterySession = true
+            }
+
+            dialogView.findViewById<View>(R.id.btnReliabilityCancel).setOnClickListener {
+                dialog.dismiss()
+                hasAskedBatterySession = true
+            }
+
+            dialog.window?.setWindowAnimations(R.style.BottomSheetSlideAnimation)
+            dialog.window?.applyLiquidGlassModalEffect(dimAmount = 0.65f)
+            dialog.show()
+
+            val displayMetrics = resources.displayMetrics
+            val dialogWidth = (320 * displayMetrics.density).toInt()
+            dialog.window?.setLayout(dialogWidth, WindowManager.LayoutParams.WRAP_CONTENT)
+            dialog.window?.setGravity(android.view.Gravity.CENTER)
+        }
+    }
+
+
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleNavigationIntent(intent)
+    }
+
+    private fun handleNavigationIntent(intent: Intent?) {
+        val targetTab = intent?.getIntExtra("NAVIGATE_TO_TAB", -1) ?: -1
+        if (targetTab >= 0 && ::pagerAdapter.isInitialized) {
+            binding.mainViewPager.currentItem = targetTab
         }
     }
 
@@ -170,15 +357,21 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
     }
 
     private fun observeMedIntelligence() {
-        viewModel.selectedMedDetails.observe(this) { info ->
+        viewModel.searchEvent.observe(this) { event ->
+            val result = event?.getContentIfNotHandled() ?: return@observe
             binding.loadingOverlay.visibility = View.GONE
-            if (info != null) {
-                binding.mainViewPager.currentItem = 2
-                MedicationDetailDialog.newInstance(info)
-                    .show(supportFragmentManager, "MedicationDetail")
-                viewModel.clearSelectedMedDetails()
-            } else {
-                Toast.makeText(this, getString(R.string.toast_med_not_found), Toast.LENGTH_LONG).show()
+            when (result) {
+                is SearchEvent.Success -> {
+                    binding.mainViewPager.currentItem = 2
+                    MedicationDetailDialog.newInstance(result.medInfo)
+                        .show(supportFragmentManager, "MedicationDetail")
+                }
+                is SearchEvent.NotFound -> {
+                    Toast.makeText(this, getString(R.string.toast_med_not_found), Toast.LENGTH_LONG).show()
+                }
+                is SearchEvent.Error -> {
+                    Toast.makeText(this, result.message, Toast.LENGTH_LONG).show()
+                }
             }
         }
     }
@@ -188,6 +381,20 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
         binding.mainViewPager.adapter = pagerAdapter
         binding.mainViewPager.isUserInputEnabled = true
         binding.mainViewPager.offscreenPageLimit = 3
+
+        binding.mainViewPager.setPageTransformer { page, position ->
+            when {
+                position < -1f -> page.alpha = 0f
+                position <= 1f -> {
+                    val scaleFactor = Math.max(0.93f, 1f - Math.abs(position) * 0.07f)
+                    val alphaFactor = Math.max(0.5f, 1f - Math.abs(position) * 0.5f)
+                    page.scaleX = scaleFactor
+                    page.scaleY = scaleFactor
+                    page.alpha = alphaFactor
+                }
+                else -> page.alpha = 0f
+            }
+        }
 
         binding.mainViewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
@@ -220,7 +427,30 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
     }
 
     override fun onOnlineSearch(query: String) {
+        binding.loadingOverlay.visibility = View.VISIBLE
         viewModel.fetchMedicationInfo(query)
+    }
+
+    override fun onVoiceSearchRequest() {
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(
+                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+            )
+            putExtra(RecognizerIntent.EXTRA_PROMPT, getString(R.string.prompt_voice_search))
+        }
+        try {
+            speechToTextLauncher.launch(intent)
+        } catch (e: Exception) {
+            if (::pagerAdapter.isInitialized) {
+                pagerAdapter.stopVoiceSearchAnimation()
+            }
+            Toast.makeText(this, "Voice search is not supported on this device", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    override fun onRemoveSearchHistory(query: String) {
+        viewModel.removeFromSearchHistory(query)
     }
 
     override fun onCatalogFilter(query: String) {
@@ -235,6 +465,14 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
             MedicationDetailDialog.newInstance(med)
                 .show(supportFragmentManager, "MedicationDetail")
         }
+    }
+
+    override fun getSuggestionsForQuery(query: String): List<String> {
+        return viewModel.getSuggestionsForQuery(query)
+    }
+
+    override fun getDidYouMeanSuggestion(): String? {
+        return viewModel.didYouMeanSuggestion.value
     }
 
     override fun onExportHistory() {
@@ -256,7 +494,7 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
         val newMode = if (isDark) androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO else androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES
         
         binding.themeRevealView.visibility = View.VISIBLE
-        val targetColor = if (isDark) "#F1F5F9".toColorInt() else "#050C18".toColorInt()
+        val targetColor = if (isDark) "#F8FAFC".toColorInt() else "#0B0F19".toColorInt()
         binding.themeRevealView.setBackgroundColor(targetColor)
         
         val location = IntArray(2)
@@ -282,29 +520,351 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
     }
 
     override fun onNotificationPrefs() {
-        val notifyPrefs = getSharedPreferences("notification_prefs", MODE_PRIVATE)
-        val options = arrayOf("System Sound", "Vibrations", "Lockscreen Banners")
-        val checkedItems = booleanArrayOf(
-            notifyPrefs.getBoolean("sound_enabled", true),
-            notifyPrefs.getBoolean("vibrate_enabled", true),
-            notifyPrefs.getBoolean("banners_enabled", true)
-        )
-        AlertDialog.Builder(this, R.style.Theme_OCRMedicationApp)
-            .setTitle(getString(R.string.label_notifications))
-            .setMultiChoiceItems(options, checkedItems) { _, which, isChecked ->
-                val key = when (which) {
-                    0 -> "sound_enabled"
-                    1 -> "vibrate_enabled"
-                    else -> "banners_enabled"
-                }
-                notifyPrefs.edit { putBoolean(key, isChecked) }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                return
             }
-            .setPositiveButton("Done", null)
-            .show()
+        }
+
+        val notifyPrefs = getSharedPreferences("notification_prefs", MODE_PRIVATE)
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_notification_prefs, null)
+        val dialog = AlertDialog.Builder(this, R.style.Theme_OCRMedicationApp)
+            .setView(dialogView)
+            .create()
+
+        val switchSound = dialogView.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchSound)
+        val switchVibrate = dialogView.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchVibrate)
+        val switchBanners = dialogView.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchBanners)
+
+        switchSound.isChecked = notifyPrefs.getBoolean("sound_enabled", true)
+        switchVibrate.isChecked = notifyPrefs.getBoolean("vibrate_enabled", true)
+        switchBanners.isChecked = notifyPrefs.getBoolean("banners_enabled", true)
+
+        val rbBanner = dialogView.findViewById<android.widget.RadioButton>(R.id.rbBanner)
+        val rbFullScreen = dialogView.findViewById<android.widget.RadioButton>(R.id.rbFullScreen)
+        val rowBannerOption = dialogView.findViewById<View>(R.id.rowBannerOption)
+        val rowFullScreenOption = dialogView.findViewById<View>(R.id.rowFullScreenOption)
+
+        fun selectStyle(style: String) {
+            val isFullScreen = (style == "fullscreen")
+            rbBanner?.isChecked = !isFullScreen
+            rbFullScreen?.isChecked = isFullScreen
+
+            rowBannerOption?.isSelected = !isFullScreen
+            rowFullScreenOption?.isSelected = isFullScreen
+
+            notifyPrefs.edit { putString("notification_style", if (isFullScreen) "fullscreen" else "banner") }
+        }
+
+        val currentStyle = notifyPrefs.getString("notification_style", "banner") ?: "banner"
+        selectStyle(currentStyle)
+
+        rowBannerOption?.setOnClickListener { selectStyle("banner") }
+        rbBanner?.setOnClickListener { selectStyle("banner") }
+        rowFullScreenOption?.setOnClickListener { selectStyle("fullscreen") }
+        rbFullScreen?.setOnClickListener { selectStyle("fullscreen") }
+
+        switchSound.setOnCheckedChangeListener { _, isChecked -> notifyPrefs.edit { putBoolean("sound_enabled", isChecked) } }
+        switchVibrate.setOnCheckedChangeListener { _, isChecked -> notifyPrefs.edit { putBoolean("vibrate_enabled", isChecked) } }
+        switchBanners.setOnCheckedChangeListener { _, isChecked -> notifyPrefs.edit { putBoolean("banners_enabled", isChecked) } }
+
+        dialogView.findViewById<View>(R.id.btnDonePrefs).setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.window?.setWindowAnimations(R.style.BottomSheetSlideAnimation)
+        dialog.window?.applyLiquidGlassModalEffect(dimAmount = 0.65f)
+        dialog.show()
+
+        // Force center and precise width
+        val displayMetrics = resources.displayMetrics
+        val dialogWidth = (350 * displayMetrics.density).toInt()
+        dialog.window?.setLayout(dialogWidth, WindowManager.LayoutParams.WRAP_CONTENT)
+        dialog.window?.setGravity(android.view.Gravity.CENTER)
     }
 
     override fun onReliabilityGuide() {
-        startActivity(Intent(this, ReliabilityGuideActivity::class.java))
+        showReliabilityGuideModal()
+    }
+
+    private fun showReliabilityGuideModal() {
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_reliability_guide, null)
+        val dialog = AlertDialog.Builder(this, R.style.Theme_OCRMedicationApp)
+            .setView(dialogView)
+            .create()
+
+        activeReliabilityDialogView = dialogView
+        dialog.setOnDismissListener {
+            activeReliabilityDialogView = null
+        }
+
+        val btnGrantNotification = dialogView.findViewById<View>(R.id.btnGrantNotification)
+        val btnGrantMusicAudio = dialogView.findViewById<View>(R.id.btnGrantMusicAudio)
+        val btnExactAlarm = dialogView.findViewById<View>(R.id.btnExactAlarm)
+        val btnGrantOverlay = dialogView.findViewById<View>(R.id.btnGrantOverlay)
+        val btnDisableUnusedApp = dialogView.findViewById<View>(R.id.btnDisableUnusedApp)
+        val btnOptimize = dialogView.findViewById<View>(R.id.btnOptimize)
+        val btnAutoStart = dialogView.findViewById<View>(R.id.btnAutoStart)
+        val btnTestAlarm = dialogView.findViewById<View>(R.id.btnTestAlarm)
+        val btnDone = dialogView.findViewById<View>(R.id.btnDone)
+
+        btnGrantNotification?.setOnClickListener {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            } else {
+                Toast.makeText(this, "Permission already granted by system.", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        btnGrantMusicAudio?.setOnClickListener {
+            val perm = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                Manifest.permission.READ_MEDIA_AUDIO
+            } else {
+                Manifest.permission.READ_EXTERNAL_STORAGE
+            }
+            requestPermissionLauncher.launch(perm)
+        }
+
+        btnExactAlarm?.setOnClickListener {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                try {
+                    startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                        data = Uri.parse("package:$packageName")
+                    })
+                } catch (_: Exception) {
+                    startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.parse("package:$packageName")
+                    })
+                }
+            }
+        }
+
+        btnGrantOverlay?.setOnClickListener {
+            try {
+                startActivity(ReliabilityUtils.getOverlaySettingsIntent(this))
+            } catch (_: Exception) {
+                Toast.makeText(this, "Unable to open overlay settings.", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        btnDisableUnusedApp?.setOnClickListener {
+            try {
+                startActivity(ReliabilityUtils.getManageUnusedAppRestrictionsIntent(this))
+            } catch (_: Exception) {
+                try {
+                    startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.parse("package:$packageName")
+                    })
+                } catch (_: Exception) {
+                    Toast.makeText(this, "Unable to open settings page.", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+
+        btnOptimize?.setOnClickListener {
+            try {
+                startActivity(ReliabilityUtils.getBatteryOptimizationIntent(this))
+            } catch (_: Exception) {
+                startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+            }
+        }
+
+        btnAutoStart?.setOnClickListener {
+            val intents = ReliabilityUtils.getAutoStartIntents(this)
+            var success = false
+            for (intent in intents) {
+                try {
+                    startActivity(intent)
+                    success = true
+                    break
+                } catch (_: Exception) {
+                    continue
+                }
+            }
+            getSharedPreferences("reliability_prefs", MODE_PRIVATE).edit {
+                putBoolean("auto_start_attempted", true)
+            }
+            updateReliabilityModalStatus(dialogView)
+            if (!success) {
+                Toast.makeText(this, "Please look for 'Auto-start' or 'Background' settings manually.", Toast.LENGTH_LONG).show()
+            }
+        }
+
+        btnTestAlarm?.setOnClickListener {
+            ReliabilityUtils.scheduleTestAlarm(this)
+            Toast.makeText(this, "Test alarm scheduled for 5 seconds...", Toast.LENGTH_SHORT).show()
+        }
+
+        btnDone?.setOnClickListener {
+            getSharedPreferences("reliability_prefs", MODE_PRIVATE).edit {
+                putBoolean("reliability_guide_completed", true)
+            }
+            dialog.dismiss()
+        }
+
+        updateReliabilityModalStatus(dialogView)
+
+        dialog.window?.setWindowAnimations(R.style.BottomSheetSlideAnimation)
+        dialog.window?.applyLiquidGlassModalEffect(dimAmount = 0.65f, blurRadius = 35)
+        dialog.show()
+
+        val displayMetrics = resources.displayMetrics
+        val dialogWidth = (360 * displayMetrics.density).toInt()
+        dialog.window?.setLayout(dialogWidth, WindowManager.LayoutParams.WRAP_CONTENT)
+        dialog.window?.setGravity(android.view.Gravity.CENTER)
+    }
+
+    private fun updateReliabilityModalStatus(dialogView: View) {
+        val prefs = getSharedPreferences("reliability_prefs", MODE_PRIVATE)
+        val isNotificationGranted = ReliabilityUtils.isNotificationPermissionGranted(this)
+        val isMusicAudioGranted = ReliabilityUtils.isMusicAudioPermissionGranted(this)
+        val isOverlayGranted = ReliabilityUtils.canDrawOverlays(this)
+        val isUnusedAppDisabled = ReliabilityUtils.isUnusedAppRestrictionDisabled(this)
+        val isBatteryOptimized = !ReliabilityUtils.isBatteryOptimized(this)
+        val isAutoStartDone = prefs.getBoolean("auto_start_attempted", false)
+        val isExactAlarmGranted = ReliabilityUtils.canScheduleExactAlarms(this)
+
+        var totalSteps = 0
+        var completedSteps = 0
+
+        val setStatusGranted = { tv: TextView, label: String ->
+            tv.text = label
+            tv.setTextColor(ContextCompat.getColor(this, R.color.status_pill_taken_text))
+            tv.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.status_pill_taken))
+        }
+
+        val setStatusRequired = { tv: TextView, label: String ->
+            tv.text = label
+            tv.setTextColor(ContextCompat.getColor(this, R.color.status_pill_pending_text))
+            tv.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.status_pill_pending))
+        }
+
+        // Step 1: Notification
+        val cardNotification = dialogView.findViewById<View>(R.id.cardNotificationPerm)
+        val tvNotificationStatus = dialogView.findViewById<TextView>(R.id.tvNotificationStatus)
+        val btnGrantNotification = dialogView.findViewById<View>(R.id.btnGrantNotification)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            totalSteps++
+            cardNotification?.visibility = View.VISIBLE
+            if (isNotificationGranted) {
+                completedSteps++
+                tvNotificationStatus?.let { setStatusGranted(it, getString(R.string.status_granted)) }
+                btnGrantNotification?.isEnabled = false
+                btnGrantNotification?.alpha = 0.5f
+            } else {
+                tvNotificationStatus?.let { setStatusRequired(it, getString(R.string.status_required)) }
+                btnGrantNotification?.isEnabled = true
+                btnGrantNotification?.alpha = 1.0f
+            }
+        } else {
+            cardNotification?.visibility = View.GONE
+        }
+
+        // Step 2: Music & Audio
+        totalSteps++
+        val tvMusicAudioStatus = dialogView.findViewById<TextView>(R.id.tvMusicAudioStatus)
+        val btnGrantMusicAudio = dialogView.findViewById<View>(R.id.btnGrantMusicAudio)
+        if (isMusicAudioGranted) {
+            completedSteps++
+            tvMusicAudioStatus?.let { setStatusGranted(it, getString(R.string.status_granted)) }
+            btnGrantMusicAudio?.isEnabled = false
+            btnGrantMusicAudio?.alpha = 0.5f
+        } else {
+            tvMusicAudioStatus?.let { setStatusRequired(it, getString(R.string.status_required)) }
+            btnGrantMusicAudio?.isEnabled = true
+            btnGrantMusicAudio?.alpha = 1.0f
+        }
+
+        // Step 3: Exact Alarms
+        totalSteps++
+        val tvExactStatus = dialogView.findViewById<TextView>(R.id.tvExactStatus)
+        val btnExactAlarm = dialogView.findViewById<View>(R.id.btnExactAlarm)
+        if (isExactAlarmGranted) {
+            completedSteps++
+            tvExactStatus?.let { setStatusGranted(it, getString(R.string.status_granted)) }
+            btnExactAlarm?.isEnabled = false
+            btnExactAlarm?.alpha = 0.5f
+        } else {
+            tvExactStatus?.let { setStatusRequired(it, getString(R.string.status_required)) }
+            btnExactAlarm?.isEnabled = true
+            btnExactAlarm?.alpha = 1.0f
+        }
+
+        // Step 4: Display Over Other Apps
+        totalSteps++
+        val tvOverlayStatus = dialogView.findViewById<TextView>(R.id.tvOverlayStatus)
+        val btnGrantOverlay = dialogView.findViewById<View>(R.id.btnGrantOverlay)
+        if (isOverlayGranted) {
+            completedSteps++
+            tvOverlayStatus?.let { setStatusGranted(it, getString(R.string.status_granted)) }
+            btnGrantOverlay?.isEnabled = false
+            btnGrantOverlay?.alpha = 0.5f
+        } else {
+            tvOverlayStatus?.let { setStatusRequired(it, getString(R.string.status_required)) }
+            btnGrantOverlay?.isEnabled = true
+            btnGrantOverlay?.alpha = 1.0f
+        }
+
+        // Step 5: Unused App Settings
+        val cardUnusedApp = dialogView.findViewById<View>(R.id.cardUnusedAppPerm)
+        val tvUnusedAppStatus = dialogView.findViewById<TextView>(R.id.tvUnusedAppStatus)
+        val btnDisableUnusedApp = dialogView.findViewById<View>(R.id.btnDisableUnusedApp)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            totalSteps++
+            cardUnusedApp?.visibility = View.VISIBLE
+            if (isUnusedAppDisabled) {
+                completedSteps++
+                tvUnusedAppStatus?.let { setStatusGranted(it, getString(R.string.status_unused_app_disabled)) }
+                btnDisableUnusedApp?.isEnabled = false
+                btnDisableUnusedApp?.alpha = 0.5f
+            } else {
+                tvUnusedAppStatus?.let { setStatusRequired(it, getString(R.string.status_unused_app_enabled)) }
+                btnDisableUnusedApp?.isEnabled = true
+                btnDisableUnusedApp?.alpha = 1.0f
+            }
+        } else {
+            cardUnusedApp?.visibility = View.GONE
+        }
+
+        // Step 6: Battery Optimization
+        totalSteps++
+        val tvBatteryStatus = dialogView.findViewById<TextView>(R.id.tvBatteryStatus)
+        val btnOptimize = dialogView.findViewById<View>(R.id.btnOptimize)
+        if (isBatteryOptimized) {
+            completedSteps++
+            tvBatteryStatus?.let { setStatusGranted(it, getString(R.string.status_optimized)) }
+            btnOptimize?.isEnabled = false
+            btnOptimize?.alpha = 0.5f
+        } else {
+            tvBatteryStatus?.let { setStatusRequired(it, getString(R.string.status_restricted)) }
+            btnOptimize?.isEnabled = true
+            btnOptimize?.alpha = 1.0f
+        }
+
+        // Step 7: Auto-Start
+        totalSteps++
+        val tvAutoStartStatus = dialogView.findViewById<TextView>(R.id.tvAutoStartStatus)
+        val btnAutoStart = dialogView.findViewById<View>(R.id.btnAutoStart)
+        btnAutoStart?.isEnabled = !isAutoStartDone
+        if (isAutoStartDone) {
+            completedSteps++
+            tvAutoStartStatus?.let { setStatusGranted(it, getString(R.string.status_done)) }
+            btnAutoStart?.alpha = 0.5f
+        } else {
+            tvAutoStartStatus?.let { setStatusRequired(it, getString(R.string.status_pending)) }
+            btnAutoStart?.alpha = 1.0f
+        }
+
+        // Progress counter and progress bar
+        val tvGuideProgress = dialogView.findViewById<TextView>(R.id.tvGuideProgress)
+        val pbGuideProgress = dialogView.findViewById<ProgressBar>(R.id.pbGuideProgress)
+        tvGuideProgress?.text = "$completedSteps/$totalSteps Done"
+        val progressPercent = if (totalSteps > 0) (completedSteps * 100) / totalSteps else 0
+        pbGuideProgress?.progress = progressPercent
+
+        val cardTestAlarm = dialogView.findViewById<View>(R.id.cardTestAlarm)
+        cardTestAlarm?.visibility = if (isNotificationGranted && isExactAlarmGranted) View.VISIBLE else View.GONE
     }
 
     override fun onClearHistory() {
@@ -335,7 +895,8 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
             dialog.dismiss()
         }
 
-        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialog.window?.setWindowAnimations(R.style.BottomSheetSlideAnimation)
+        dialog.window?.applyLiquidGlassModalEffect(dimAmount = 0.65f)
         dialog.show()
 
         // Force center and precise width
@@ -358,7 +919,31 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
         } catch (e: Exception) {
             "1.0.0"
         }
-        dialogView.findViewById<TextView>(R.id.tvAboutVersion).text = getString(R.string.version_format, versionName)
+
+        val tvVersion = dialogView.findViewById<TextView>(R.id.tvAboutVersion)
+        tvVersion.text = getString(R.string.version_format, versionName)
+
+        var versionClickCount = 0
+        var lastClickTime = 0L
+
+        tvVersion.setOnClickListener {
+            val currentTime = System.currentTimeMillis()
+            if (currentTime - lastClickTime > 2000) {
+                versionClickCount = 0
+            }
+            lastClickTime = currentTime
+            versionClickCount++
+
+            when (versionClickCount) {
+                3 -> Toast.makeText(this, "You are 2 steps away from Secret Tweaks.", Toast.LENGTH_SHORT).show()
+                4 -> Toast.makeText(this, "You are 1 step away from Secret Tweaks.", Toast.LENGTH_SHORT).show()
+                5 -> {
+                    versionClickCount = 0
+                    dialog.dismiss()
+                    showSecretTweaksDialog()
+                }
+            }
+        }
 
         dialogView.findViewById<View>(R.id.btnAboutClose).setOnClickListener {
             dialog.dismiss()
@@ -366,12 +951,131 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
 
         dialogView.findViewById<TextView>(R.id.tvAboutLegal).text = getString(R.string.about_legal)
 
-        dialog.window?.setBackgroundDrawableResource(R.drawable.dialog_background)
-        dialog.window?.setLayout(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT
-        )
+        dialog.window?.setWindowAnimations(R.style.BottomSheetSlideAnimation)
+        dialog.window?.applyLiquidGlassModalEffect(dimAmount = 0.65f)
         dialog.show()
+
+        val displayMetrics = resources.displayMetrics
+        val dialogWidth = (320 * displayMetrics.density).toInt()
+        val targetHeight = (displayMetrics.heightPixels * 0.68).toInt()
+        val window = dialog.window
+        if (window != null) {
+            window.setLayout(dialogWidth, targetHeight)
+            window.setGravity(android.view.Gravity.CENTER)
+        }
+    }
+
+    private fun showSecretTweaksDialog() {
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_secret_tweaks, null)
+        val dialog = AlertDialog.Builder(this, R.style.Theme_OCRMedicationApp)
+            .setView(dialogView)
+            .create()
+
+        val btnPreferredScannerCard = dialogView.findViewById<View>(R.id.btnPreferredScannerCard)
+        val panelChoices = dialogView.findViewById<View>(R.id.panelPreferredScannerChoices)
+        val ivChevron = dialogView.findViewById<ImageView>(R.id.ivExpandChevron)
+        val tvCurrentScannerMode = dialogView.findViewById<TextView>(R.id.tvCurrentScannerMode)
+        val rgScannerChoices = dialogView.findViewById<android.widget.RadioGroup>(R.id.rgScannerChoices)
+        val rbMlKit = dialogView.findViewById<android.widget.RadioButton>(R.id.rbScannerMlKit)
+        val rbGemini = dialogView.findViewById<android.widget.RadioButton>(R.id.rbScannerGemini)
+        val rbBoth = dialogView.findViewById<android.widget.RadioButton>(R.id.rbScannerBoth)
+
+        val notifyPrefs = getSharedPreferences("notification_prefs", MODE_PRIVATE)
+        val currentMode = notifyPrefs.getString("preferred_scanner", "both") ?: "both"
+
+        val updateSummaryLabel = { mode: String ->
+            when (mode) {
+                "mlkit" -> tvCurrentScannerMode?.text = "Google ML Kit (On-Device)"
+                "gemini" -> tvCurrentScannerMode?.text = "Gemini API (Cloud AI)"
+                else -> tvCurrentScannerMode?.text = "Both (ML Kit + Gemini API)"
+            }
+        }
+
+        updateSummaryLabel(currentMode)
+        when (currentMode) {
+            "mlkit" -> rbMlKit?.isChecked = true
+            "gemini" -> rbGemini?.isChecked = true
+            else -> rbBoth?.isChecked = true
+        }
+
+        var isExpanded = false
+        btnPreferredScannerCard?.setOnClickListener {
+            isExpanded = !isExpanded
+            if (panelChoices != null) {
+                if (isExpanded) {
+                    expandView(panelChoices)
+                } else {
+                    collapseView(panelChoices)
+                }
+            }
+            ivChevron?.animate()?.rotation(if (isExpanded) 90f else 0f)?.setDuration(280)?.start()
+        }
+
+        rgScannerChoices?.setOnCheckedChangeListener { _, checkedId ->
+            val selectedMode = when (checkedId) {
+                R.id.rbScannerMlKit -> "mlkit"
+                R.id.rbScannerGemini -> "gemini"
+                else -> "both"
+            }
+            notifyPrefs.edit { putString("preferred_scanner", selectedMode) }
+            updateSummaryLabel(selectedMode)
+        }
+
+        dialogView.findViewById<View>(R.id.btnSecretTweaksClose)?.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialogView.findViewById<View>(R.id.btnSecretTweaksDone)?.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.window?.setWindowAnimations(R.style.BottomSheetSlideAnimation)
+        dialog.window?.applyLiquidGlassModalEffect(dimAmount = 0.65f, blurRadius = 35)
+        dialog.show()
+
+        val displayMetrics = resources.displayMetrics
+        val dialogWidth = (340 * displayMetrics.density).toInt()
+        dialog.window?.setLayout(dialogWidth, WindowManager.LayoutParams.WRAP_CONTENT)
+        dialog.window?.setGravity(android.view.Gravity.CENTER)
+    }
+
+    private fun expandView(view: View, duration: Long = 300L) {
+        view.measure(
+            View.MeasureSpec.makeMeasureSpec((view.parent as View).width, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+        val targetHeight = view.measuredHeight
+
+        view.layoutParams.height = 0
+        view.visibility = View.VISIBLE
+
+        val animator = ValueAnimator.ofInt(0, targetHeight)
+        animator.addUpdateListener { valueAnimator ->
+            view.layoutParams.height = valueAnimator.animatedValue as Int
+            view.requestLayout()
+        }
+        animator.duration = duration
+        animator.interpolator = DecelerateInterpolator()
+        animator.start()
+    }
+
+    private fun collapseView(view: View, duration: Long = 250L) {
+        val initialHeight = view.measuredHeight
+
+        val animator = ValueAnimator.ofInt(initialHeight, 0)
+        animator.addUpdateListener { valueAnimator ->
+            val value = valueAnimator.animatedValue as Int
+            if (value == 0) {
+                view.visibility = View.GONE
+                view.layoutParams.height = ViewGroup.LayoutParams.WRAP_CONTENT
+            } else {
+                view.layoutParams.height = value
+                view.requestLayout()
+            }
+        }
+        animator.duration = duration
+        animator.interpolator = AccelerateDecelerateInterpolator()
+        animator.start()
     }
 
     override fun getTakenFormat(taken: Int, total: Int): String {
@@ -406,7 +1110,14 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
             text?.setTextColor(color)
             text?.setTypeface(null, if (isSelected) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
 
-            if (isSelected) {
+            val targetScale = if (isSelected) 1.15f else 1.0f
+            icon?.animate()
+                ?.scaleX(targetScale)
+                ?.scaleY(targetScale)
+                ?.setDuration(200)
+                ?.start()
+
+            if (isSelected && binding.navIndicator.visibility == View.VISIBLE) {
                 container.post {
                     val targetX = container.x + (container.width / 2f) - (binding.navIndicator.width / 2f)
                     binding.navIndicator.animate()
@@ -419,6 +1130,10 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
     }
 
     private fun observeViewModel() {
+        viewModel.isLoading.observe(this) { isLoading ->
+            binding.loadingOverlay.visibility = if (isLoading) View.VISIBLE else View.GONE
+        }
+
         viewModel.medicationList.observe(this) { list ->
             pagerAdapter.updateMeds(list)
         }
@@ -434,17 +1149,31 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
         viewModel.searchHistory.observe(this) { history ->
             pagerAdapter.updateHistory(history)
         }
+
+        viewModel.historyRecords.observe(this) { records ->
+            pagerAdapter.updateHistoryRecords(records)
+        }
     }
 
     private fun setupClickListeners() {
+        binding.fabScanContainer.addTactileTouchEffect(0.91f)
         binding.fabScanContainer.setOnClickListener {
             showScanOptionsDialog()
         }
 
-        binding.navHomeContainer.setOnClickListener { binding.mainViewPager.currentItem = 0 }
-        binding.navHistoryContainer.setOnClickListener { binding.mainViewPager.currentItem = 1 }
-        binding.navOnlineContainer.setOnClickListener { binding.mainViewPager.currentItem = 2 }
-        binding.navSettingsContainer.setOnClickListener { binding.mainViewPager.currentItem = 3 }
+        val navContainers = listOf(
+            binding.navHomeContainer,
+            binding.navHistoryContainer,
+            binding.navOnlineContainer,
+            binding.navSettingsContainer
+        )
+
+        navContainers.forEachIndexed { index, container ->
+            container.addTactileTouchEffect(0.93f)
+            container.setOnClickListener {
+                binding.mainViewPager.currentItem = index
+            }
+        }
 
         binding.btnCancelScan.setOnClickListener { binding.cameraGuideOverlay.visibility = View.GONE }
         binding.btnProceedScan.setOnClickListener {
@@ -467,6 +1196,8 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
                     1 -> openGalleryIntent()
                 }
             }
+            .create()
+            .apply { applyLiquidGlassModalEffect() }
             .show()
     }
 
@@ -496,6 +1227,8 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
                 startActivity(intent)
             }
             .setNegativeButton("Cancel", null)
+            .create()
+            .apply { applyLiquidGlassModalEffect() }
             .show()
     }
 
@@ -505,9 +1238,10 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
 
     private fun openCameraIntent() {
         try {
-            photoUri = createImageUri()
-            if (photoUri != null) {
-                takePictureLauncher.launch(photoUri!!)
+            val uri = createImageUri()
+            photoUri = uri
+            if (uri != null) {
+                takePictureLauncher.launch(uri)
             } else {
                 Toast.makeText(this, "Failed to create image file", Toast.LENGTH_SHORT).show()
             }
@@ -534,11 +1268,17 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
     }
 
     private fun optimizeForOCR(source: Bitmap): Bitmap {
-        // High-fidelity pre-processing for Gemini 2.0 Flash
-        val output = createBitmap(source.width, source.height, source.config!!)
+        // High-fidelity pre-processing for Gemini 1.5 Flash
+        val isHardware = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && source.config == Bitmap.Config.HARDWARE
+        val targetConfig = if (isHardware || source.config == null) {
+            Bitmap.Config.ARGB_8888
+        } else {
+            source.config ?: Bitmap.Config.ARGB_8888
+        }
+        val output = createBitmap(source.width, source.height, targetConfig)
         val canvas = Canvas(output)
         
-        // 1. Grayscale + High Contrast + Brightness Normalization
+        // Grayscale + High Contrast + Brightness
         val colorMatrix = ColorMatrix().apply {
             setSaturation(0f) // Remove color noise
         }
@@ -568,6 +1308,24 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
         return output
     }
 
+    private fun prepareBitmapForVision(source: Bitmap): Bitmap {
+        val maxDim = 2048
+        if (source.width <= maxDim && source.height <= maxDim) {
+            return source
+        }
+        val ratio = source.width.toFloat() / source.height.toFloat()
+        val targetWidth: Int
+        val targetHeight: Int
+        if (source.width > source.height) {
+            targetWidth = maxDim
+            targetHeight = (maxDim / ratio).toInt()
+        } else {
+            targetHeight = maxDim
+            targetWidth = (maxDim * ratio).toInt()
+        }
+        return Bitmap.createScaledBitmap(source, targetWidth, targetHeight, true)
+    }
+
     private fun processGalleryImage(uri: Uri) {
         try {
             binding.loadingOverlay.visibility = View.VISIBLE
@@ -578,23 +1336,106 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
                 Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show()
                 return
             }
-                 // Priority 1 High Accuracy AI Scan(Optimizing++)
+
+            val visionBitmap = prepareBitmapForVision(bitmap)
             val optimizedBitmap = optimizeForOCR(bitmap)
-            viewModel.extractWithGemini(optimizedBitmap) { medication ->
-                binding.loadingOverlay.visibility = View.GONE
-                if (medication != null && medication.name != "Unknown") {
-                    showEditMedicationSheet(medication)
-                } else {
-                       // Balik sa ML kit if di kaya ng AI
-                    val legacyEnhanced = optimizeForOCR(bitmap)
-                    val image = InputImage.fromBitmap(legacyEnhanced, 0)
-                    runTextRecognizer(image)
+            val wrapper = ocrWrapper ?: MlKitOcrWrapper().also { ocrWrapper = it }
+
+            val notifyPrefs = getSharedPreferences("notification_prefs", MODE_PRIVATE)
+            val scannerMode = notifyPrefs.getString("preferred_scanner", "both") ?: "both"
+
+            lifecycleScope.launch {
+                try {
+                    when (scannerMode) {
+                        "mlkit" -> {
+                            val mlKitText = wrapper.recognizeText(optimizedBitmap)
+                            viewModel.processStandaloneMlKitOcr(mlKitText) { singleMed ->
+                                binding.loadingOverlay.visibility = View.GONE
+                                if (singleMed != null) {
+                                    showEditMedicationSheet(singleMed)
+                                } else {
+                                    Toast.makeText(this@MainActivity, "No medication details found", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        }
+                        "gemini" -> {
+                            viewModel.processOcrWithGeminiValidation("", visionBitmap) { isMultiple, singleMed, regions ->
+                                binding.loadingOverlay.visibility = View.GONE
+                                if (isMultiple && regions.isNotEmpty()) {
+                                    showMultiPrescriptionSelectionDialog(visionBitmap, regions)
+                                } else if (singleMed != null) {
+                                    showEditMedicationSheet(singleMed)
+                                } else {
+                                    Toast.makeText(this@MainActivity, "No medication details found", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        }
+                        else -> { // "both"
+                            val mlKitText = wrapper.recognizeText(optimizedBitmap)
+                            viewModel.processOcrWithGeminiValidation(mlKitText, visionBitmap) { isMultiple, singleMed, regions ->
+                                binding.loadingOverlay.visibility = View.GONE
+                                if (isMultiple && regions.isNotEmpty()) {
+                                    showMultiPrescriptionSelectionDialog(visionBitmap, regions)
+                                } else if (singleMed != null) {
+                                    showEditMedicationSheet(singleMed)
+                                } else {
+                                    Toast.makeText(this@MainActivity, "No medication details found", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    binding.loadingOverlay.visibility = View.GONE
+                    Log.e("OcrPipeline", "Scan error: ${e.message}", e)
+                    Toast.makeText(this@MainActivity, "Failed to scan prescription", Toast.LENGTH_SHORT).show()
                 }
             }
         } catch (e: Exception) {
             binding.loadingOverlay.visibility = View.GONE
             Toast.makeText(this, "Failed to process image: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun showMultiPrescriptionSelectionDialog(
+        bitmap: Bitmap,
+        regions: List<PrescriptionRegionItem>
+    ) {
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_multi_prescription_selector, null)
+        val dialog = AlertDialog.Builder(this, R.style.Theme_OCRMedicationApp)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+
+        val btnClose = dialogView.findViewById<View>(R.id.btnCloseMultiScan)
+        val overlayView = dialogView.findViewById<PrescriptionCircleOverlayView>(R.id.overlayCircleView)
+
+        btnClose.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        overlayView.setImageAndRegions(bitmap, regions) { selectedRegion ->
+            dialog.dismiss()
+            val selectedMed = Medication(
+                name = selectedRegion.name,
+                dosage = selectedRegion.dosage,
+                quantity = if (selectedRegion.quantity.isBlank()) "1" else selectedRegion.quantity,
+                frequency = if (selectedRegion.frequency.isBlank()) "Daily" else selectedRegion.frequency,
+                time = "08:00 AM",
+                isVerified = true,
+                verificationMessage = "Selected from multi-prescription scan"
+            )
+            showEditMedicationSheet(selectedMed)
+        }
+
+        dialog.window?.setWindowAnimations(R.style.BottomSheetSlideAnimation)
+        dialog.window?.applyLiquidGlassModalEffect(dimAmount = 0.70f)
+        dialog.show()
+
+        val displayMetrics = resources.displayMetrics
+        val dialogWidth = (360 * displayMetrics.density).toInt()
+        val dialogHeight = (520 * displayMetrics.density).toInt()
+        dialog.window?.setLayout(dialogWidth, dialogHeight)
+        dialog.window?.setGravity(android.view.Gravity.CENTER)
     }
 
     private fun showEditMedicationSheet(medication: Medication, isEdit: Boolean = false) {
@@ -646,14 +1487,17 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
         }
     }
 
-    private fun runTextRecognizer(image: InputImage) {
-        recognizer.process(image)
-            .addOnSuccessListener { visionText ->
-                parsePrescriptionText(visionText.text)
+    private fun runTextRecognizer(bitmap: Bitmap) {
+        val wrapper = ocrWrapper ?: MlKitOcrWrapper().also { ocrWrapper = it }
+        
+        lifecycleScope.launch {
+            val text = wrapper.recognizeText(bitmap)
+            if (text.isNotEmpty()) {
+                parsePrescriptionText(text)
+            } else {
+                Toast.makeText(this@MainActivity, "No text detected in image", Toast.LENGTH_SHORT).show()
             }
-            .addOnFailureListener { e ->
-                Toast.makeText(this, "OCR processing failed: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
-            }
+        }
     }
 
     private fun parsePrescriptionText(rawText: String) {
@@ -727,5 +1571,10 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
 
         Toast.makeText(this, "Basic Scan Complete. Please verify details.", Toast.LENGTH_SHORT).show()
         showEditMedicationSheet(Medication(name = extractedName, dosage = extractedDosage, quantity = extractedQty, frequency = extractedFreq, time = "12:00 PM"))
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        ocrWrapper?.release()
     }
 }

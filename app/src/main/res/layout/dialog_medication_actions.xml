@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="240dp"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="@drawable/action_menu_background">
+
+    <TextView
+        android:id="@+id/btnEditMed"
+        android:layout_width="match_parent"
+        android:layout_height="54dp"
+        android:text="@string/action_edit_medication"
+        android:textColor="@color/text_primary"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="?attr/selectableItemBackground"
+        app:drawableStartCompat="@android:drawable/ic_menu_edit"
+        app:drawableTint="@color/accent_teal"
+        android:drawablePadding="12dp" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0.8dp"
+        android:background="@color/glass_stroke"
+        android:layout_marginHorizontal="12dp" />
+
+    <TextView
+        android:id="@+id/btnDeleteMed"
+        android:layout_width="match_parent"
+        android:layout_height="54dp"
+        android:text="@string/action_delete_medication"
+        android:textColor="#EF4444"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="?attr/selectableItemBackground"
+        app:drawableStartCompat="@android:drawable/ic_menu_delete"
+        app:drawableTint="#EF4444"
+        android:drawablePadding="12dp" />
+
+</LinearLayout>

@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/dialog_background"
+    android:paddingHorizontal="24dp"
+    android:paddingTop="12dp"
+    android:paddingBottom="28dp">
+
+    <!-- Top Drag Handle -->
+    <View
+        android:layout_width="36dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/bottom_sheet_drag_handle_bg"
+        android:alpha="0.4"/>
+
+    <!-- Header Section -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="20dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Select Reminder Time"
+            android:textColor="@color/text_primary"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"/>
+    </RelativeLayout>
+
+    <!-- Scroll Wheels Container with Dark Navy Background -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="220dp"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="8dp"
+        android:background="@drawable/wheel_picker_container_bg"
+        android:layout_marginBottom="24dp">
+
+        <!-- Hour Scroll Wheel -->
+        <NumberPicker
+            android:id="@+id/npHour"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:theme="@style/Theme.OCRMedicationApp.DarkWheelPicker"
+            android:descendantFocusability="blocksDescendants"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=":"
+            android:textColor="@color/accent_teal"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:layout_gravity="center_vertical"
+            android:paddingHorizontal="6dp"/>
+
+        <!-- Minute Scroll Wheel -->
+        <NumberPicker
+            android:id="@+id/npMinute"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:theme="@style/Theme.OCRMedicationApp.DarkWheelPicker"
+            android:descendantFocusability="blocksDescendants"/>
+
+        <!-- AM/PM Scroll Wheel -->
+        <NumberPicker
+            android:id="@+id/npAmpm"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:theme="@style/Theme.OCRMedicationApp.DarkWheelPicker"
+            android:descendantFocusability="blocksDescendants"
+            android:layout_marginStart="8dp"/>
+
+    </LinearLayout>
+
+    <!-- Save Action Button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnSaveTime"
+        style="@style/Widget.Material3.Button"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="SAVE"
+        android:textColor="@android:color/white"
+        android:textStyle="bold"
+        android:textSize="15sp"
+        android:letterSpacing="0.05"
+        android:backgroundTint="@color/accent_teal"
+        app:cornerRadius="18dp"
+        android:elevation="0dp"/>
+
+</LinearLayout>

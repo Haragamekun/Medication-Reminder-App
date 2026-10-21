@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/dialog_background"
+    android:paddingHorizontal="24dp"
+    android:paddingTop="12dp"
+    android:paddingBottom="28dp">
+
+    <!-- Top Drag Handle -->
+    <View
+        android:layout_width="36dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/bottom_sheet_drag_handle_bg"
+        android:alpha="0.4"/>
+
+    <!-- Header Row -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="20dp">
+
+        <LinearLayout
+            android:id="@+id/btnBackFrequencyCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:padding="4dp"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@android:drawable/ic_menu_revert"
+                app:tint="@color/accent_teal"
+                android:contentDescription="@null"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Frequency"
+                android:textColor="@color/accent_teal"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginStart="8dp"/>
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Select Frequency"
+            android:textColor="@color/text_primary"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"/>
+    </RelativeLayout>
+
+    <!-- Main Selection Card: Radio Group for Daily Times -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/liquid_glass_card"
+        android:padding="16dp"
+        android:elevation="0dp"
+        android:layout_marginBottom="20dp">
+
+        <RadioGroup
+            android:id="@+id/rgFrequencyCount"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- 1 time a day -->
+            <RadioButton
+                android:id="@+id/rbOnce"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:text="1 time a day"
+                android:textColor="@color/text_primary"
+                android:textSize="16sp"
+                android:checked="true"
+                android:buttonTint="@color/accent_teal"
+                android:paddingStart="12dp"/>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@color/glass_stroke"/>
+
+            <!-- 2 times a day -->
+            <RadioButton
+                android:id="@+id/rbTwice"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:text="2 times a day"
+                android:textColor="@color/text_primary"
+                android:textSize="16sp"
+                android:buttonTint="@color/accent_teal"
+                android:paddingStart="12dp"/>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@color/glass_stroke"/>
+
+            <!-- 3 times a day -->
+            <RadioButton
+                android:id="@+id/rbThrice"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:text="3 times a day"
+                android:textColor="@color/text_primary"
+                android:textSize="16sp"
+                android:buttonTint="@color/accent_teal"
+                android:paddingStart="12dp"/>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@color/glass_stroke"/>
+
+            <!-- 4 times a day -->
+            <RadioButton
+                android:id="@+id/rbFourTimes"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:text="4 times a day"
+                android:textColor="@color/text_primary"
+                android:textSize="16sp"
+                android:buttonTint="@color/accent_teal"
+                android:paddingStart="12dp"/>
+        </RadioGroup>
+    </LinearLayout>
+
+    <!-- Save Action Button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnSaveFrequencyCount"
+        style="@style/Widget.Material3.Button"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="SAVE FREQUENCY"
+        android:textColor="@android:color/white"
+        android:textStyle="bold"
+        android:textSize="15sp"
+        android:letterSpacing="0.05"
+        android:backgroundTint="@color/accent_teal"
+        app:cornerRadius="18dp"
+        android:elevation="0dp"/>
+
+</LinearLayout>

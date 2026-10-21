@@ -3,28 +3,47 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 
-    <!-- Semantic Colors -->
-    <color name="app_background">#F0F4F8</color>
-    <color name="text_primary">#1E293B</color>
-    <color name="text_secondary">#475569</color>
-    <color name="accent_teal">#06B6D4</color> <!-- Cyan/Teal -->
-    <color name="accent_purple">#8B5CF6</color> <!-- Purple for contrast -->
-    <color name="glass_card_bg">#CCFFFFFF</color>
-    <color name="glass_stroke">#1A000000</color>
-    <color name="nav_selected">#06B6D4</color>
-    <color name="nav_unselected">#94A3B8</color>
+    <!-- Light Theme Colors (WCAG AAA High-Contrast Compliant) -->
+    <color name="app_background">#F8FAFC</color> <!-- Soft Ice Gray -->
+    <color name="grid_card_bg">#FFFFFF</color> <!-- Crisp White Card Surface -->
+    <color name="glass_card_bg">#FFFFFF</color> <!-- Crisp White Panel Surface -->
+    <color name="flyout_card_bg">#FFFFFF</color>
+    <color name="glass_stroke">#CBD5E1</color> <!-- Subtle Border Stroke -->
 
-    <!-- UI Perfection Colors -->
+    <!-- Text Colors -->
+    <color name="text_primary">#0F172A</color> <!-- Dark Charcoal Primary Text -->
+    <color name="text_secondary">#64748B</color> <!-- Slate Gray Secondary Text -->
+    <color name="text_hint">#94A3B8</color> <!-- Muted Slate Hint Text -->
+    <color name="history_label">#64748B</color>
+
+    <!-- Brand & Accent Colors -->
+    <color name="accent_teal">#059669</color> <!-- Deep Teal Green Brand Accent -->
+    <color name="accent_teal_dark">#047857</color> <!-- Dark Teal Green for Solid Buttons -->
+    <color name="accent_purple">#2563EB</color> <!-- Royal Blue Secondary Accent -->
+    <color name="selected_option_bg">#1A059669</color> <!-- Soft Teal Green Active Tab Highlight -->
+    <color name="nav_selected">#059669</color> <!-- Active Nav Icon & Label -->
+    <color name="nav_unselected">#64748B</color> <!-- Inactive Nav Icon & Label -->
+
+    <!-- Functional Status Colors -->
+    <color name="snooze_orange">#D97706</color> <!-- Status Pending / Caution (Warm Amber) -->
+    <color name="status_pill_overdue_text">#DC2626</color> <!-- Status Overdue / Alert (Dark Coral) -->
+    <color name="status_pill_overdue_bg">#FEE2E2</color>
+
+    <!-- Status Pills -->
+    <color name="status_pill_taken">#D1FAE5</color> <!-- Soft Green Pill Background -->
+    <color name="status_pill_taken_text">#047857</color> <!-- Deep Emerald Text -->
+    <color name="status_pill_pending">#FEF3C7</color> <!-- Soft Amber Pill Background -->
+    <color name="status_pill_pending_text">#D97706</color> <!-- Warm Amber Text -->
+
+    <color name="flyout_overlay">#40000000</color>
     <color name="overlay_background">#CC0F172A</color>
     <color name="loading_overlay_background">#E60F172A</color>
-    <color name="accent_teal_dark">#0891B2</color>
-    <color name="text_hint">#94A3B8</color>
-    <color name="snooze_orange">#F59E0B</color>
-    <color name="history_label">#64748B</color>
-    <color name="grid_card_bg">#F8FAFC</color>
-    <color name="status_pill_taken">#D1FAE5</color>
-    <color name="status_pill_taken_text">#059669</color>
-    <color name="status_pill_pending">#FEF3C7</color>
-    <color name="status_pill_pending_text">#D97706</color>
-    <color name="button_stroke">#475569</color>
+
+    <color name="button_stroke">#CBD5E1</color>
+    <color name="action_menu_stroke">#94A3B8</color>
+
+    <!-- Aesthetic Gradients -->
+    <color name="grad_start">#059669</color>
+    <color name="grad_end">#2563EB</color>
+    <color name="shadow_color">@android:color/transparent</color>
 </resources>

@@ -9,8 +9,8 @@
 
     <ImageView
         android:id="@+id/ivConfirmIcon"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
+        android:layout_width="52dp"
+        android:layout_height="52dp"
         android:src="@android:drawable/ic_dialog_alert"
         app:tint="#EF4444"
         android:contentDescription="@string/desc_warning_icon"
@@ -39,47 +39,49 @@
         android:layout_marginTop="12dp"
         android:text="@string/confirm_default_msg"
         android:textColor="@color/text_secondary"
-        android:textSize="15sp"
+        android:textSize="14sp"
         android:gravity="center"
+        android:lineSpacingExtra="3dp"
         app:layout_constraintTop_toBottomOf="@id/tvConfirmTitle"
         app:layout_constraintStart_toStartOf="parent" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
+        android:layout_marginTop="28dp"
         android:orientation="horizontal"
         android:gravity="center"
         app:layout_constraintTop_toBottomOf="@id/tvConfirmMessage"
         app:layout_constraintBottom_toBottomOf="parent">
 
+        <!-- CANCEL BUTTON ON THE LEFT -->
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnConfirmAction"
+            android:id="@+id/btnCancelAction"
             style="@style/Widget.Material3.Button.TextButton"
             android:layout_width="0dp"
-            android:layout_height="54dp"
+            android:layout_height="52dp"
             android:layout_weight="1"
-            android:text="@string/btn_confirm"
-            android:textColor="@color/text_primary"
+            android:text="@string/btn_cancel"
+            android:textColor="@color/text_secondary"
             android:textStyle="bold"
             app:strokeColor="@color/button_stroke"
             app:strokeWidth="1dp"
             app:cornerRadius="14dp"
             android:layout_marginEnd="8dp" />
 
+        <!-- CONFIRM BUTTON ON THE RIGHT -->
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnCancelAction"
-            style="@style/Widget.Material3.Button.TonalButton"
+            android:id="@+id/btnConfirmAction"
+            style="@style/Widget.Material3.Button"
             android:layout_width="0dp"
-            android:layout_height="54dp"
+            android:layout_height="52dp"
             android:layout_weight="1"
-            android:text="@string/btn_cancel"
+            android:text="@string/btn_confirm"
             android:textColor="@android:color/white"
             android:backgroundTint="#EF4444"
             android:textStyle="bold"
-            app:strokeColor="@color/button_stroke"
-            app:strokeWidth="1dp"
-            app:cornerRadius="14dp" />
+            app:cornerRadius="14dp"
+            android:elevation="0dp" />
 
     </LinearLayout>
 

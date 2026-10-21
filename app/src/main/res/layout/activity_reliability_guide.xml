@@ -5,202 +5,720 @@
     android:layout_height="match_parent"
     android:background="@color/app_background">
 
-    <androidx.core.widget.NestedScrollView
+    <!-- Top App Bar Header -->
+    <LinearLayout
+        android:id="@+id/topHeaderBar"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/btnDone">
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginTop="20dp"
+        android:layout_marginHorizontal="10dp"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp"
+        android:background="@drawable/sticky_header_background"
+        android:elevation="0dp"
+        app:layout_constraintTop_toTopOf="parent">
 
-        <LinearLayout
+        <RelativeLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="24dp">
+            android:layout_height="wrap_content">
+
+            <ImageButton
+                android:id="@+id/btnGuideBack"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:src="@android:drawable/ic_menu_revert"
+                android:background="@drawable/liquid_glass_card"
+                app:tint="@color/accent_teal"
+                android:padding="8dp"
+                android:contentDescription="@string/desc_back"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"/>
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/title_reliability_guide"
                 android:textColor="@color/text_primary"
-                android:textSize="24sp"
-                android:textStyle="bold" />
+                android:textSize="17sp"
+                android:textStyle="bold"
+                android:layout_toEndOf="@id/btnGuideBack"
+                android:layout_toStartOf="@id/tvGuideProgress"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="12dp"
+                android:layout_centerVertical="true"
+                android:maxLines="1"
+                android:ellipsize="end"/>
 
             <TextView
+                android:id="@+id/tvGuideProgress"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:text="0/7 Done"
+                android:textColor="@color/accent_teal"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="4dp"
+                android:background="@drawable/step_badge_bg"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"/>
+        </RelativeLayout>
+
+        <!-- Progress Bar -->
+        <ProgressBar
+            android:id="@+id/pbGuideProgress"
+            style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="5dp"
+            android:layout_marginTop="12dp"
+            android:max="100"
+            android:progress="0"
+            android:progressDrawable="@drawable/status_pill_background"
+            android:progressTint="@color/accent_teal"/>
+    </LinearLayout>
+
+    <!-- Scrollable Content Container -->
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:fillViewport="true"
+        android:overScrollMode="always"
+        android:clipToPadding="false"
+        android:paddingBottom="100dp"
+        app:layout_constraintTop_toBottomOf="@id/topHeaderBar"
+        app:layout_constraintBottom_toTopOf="@+id/bottomButtonContainer">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="10dp"
+            android:paddingTop="10dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
                 android:text="@string/desc_reliability_guide"
                 android:textColor="@color/text_secondary"
-                android:textSize="14sp" />
+                android:textSize="13sp"
+                android:lineSpacingExtra="3dp"
+                android:layout_marginBottom="10dp"
+                android:paddingHorizontal="4dp"/>
 
-            <!-- Step 1: Battery Optimization -->
-            <androidx.cardview.widget.CardView
+            <!-- Step 1: Notification Permission -->
+            <LinearLayout
+                android:id="@+id/cardNotificationPerm"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                app:cardBackgroundColor="@color/glass_card_bg">
+                android:layout_marginTop="10dp"
+                android:orientation="vertical"
+                android:background="@drawable/guide_card_bg"
+                android:padding="14dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="20dp">
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
                     <TextView
+                        android:id="@+id/badgeStep1"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/label_step_battery"
-                        android:textColor="@color/text_primary"
+                        android:text="STEP 1"
+                        android:textColor="@color/accent_teal"
+                        android:textSize="10sp"
                         android:textStyle="bold"
-                        android:textSize="16sp" />
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="3dp"
+                        android:background="@drawable/step_badge_bg"/>
+
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"/>
 
                     <TextView
-                        android:id="@+id/tvBatteryStatus"
+                        android:id="@+id/tvNotificationStatus"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
                         android:text="@string/status_pending"
                         android:textColor="@color/snooze_orange"
-                        android:textSize="12sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="@string/desc_battery_opt"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="13sp" />
-
-                    <Button
-                        android:id="@+id/btnOptimize"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:text="@string/btn_configure_now"
-                        android:backgroundTint="@color/accent_teal"
-                        android:textAllCaps="false" />
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="3dp"
+                        android:background="@drawable/status_pill_background"/>
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
 
-            <!-- Step 2: Auto-Start (Manufacturer Specific) -->
-            <androidx.cardview.widget.CardView
-                android:id="@+id/cardAutoStart"
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/label_step_notification"
+                    android:textColor="@color/text_primary"
+                    android:textSize="15sp"
+                    android:textStyle="bold"/>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="@string/desc_notification_perm"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp"
+                    android:lineSpacingExtra="2dp"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnGrantNotification"
+                    style="@style/Widget.Material3.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="46dp"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/btn_grant_permission"
+                    android:textColor="@android:color/white"
+                    android:textStyle="bold"
+                    android:textSize="13sp"
+                    android:backgroundTint="@color/accent_teal"
+                    app:cornerRadius="12dp"/>
+            </LinearLayout>
+
+            <!-- Step 2: Music & Audio Permission -->
+            <LinearLayout
+                android:id="@+id/cardMusicAudioPerm"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                app:cardBackgroundColor="@color/glass_card_bg">
+                android:layout_marginTop="10dp"
+                android:orientation="vertical"
+                android:background="@drawable/guide_card_bg"
+                android:padding="14dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="20dp">
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
                     <TextView
+                        android:id="@+id/badgeStep2"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/label_step_autostart"
-                        android:textColor="@color/text_primary"
+                        android:text="STEP 2"
+                        android:textColor="@color/accent_teal"
+                        android:textSize="10sp"
                         android:textStyle="bold"
-                        android:textSize="16sp" />
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="3dp"
+                        android:background="@drawable/step_badge_bg"/>
+
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"/>
 
                     <TextView
-                        android:id="@+id/tvAutoStartStatus"
+                        android:id="@+id/tvMusicAudioStatus"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
                         android:text="@string/status_pending"
                         android:textColor="@color/snooze_orange"
-                        android:textSize="12sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="@string/desc_autostart"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="13sp" />
-
-                    <Button
-                        android:id="@+id/btnAutoStart"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:text="@string/btn_open_settings"
-                        android:backgroundTint="@color/accent_purple"
-                        android:textAllCaps="false" />
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="3dp"
+                        android:background="@drawable/status_pill_background"/>
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/label_step_music_audio"
+                    android:textColor="@color/text_primary"
+                    android:textSize="15sp"
+                    android:textStyle="bold"/>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="@string/desc_music_audio_perm"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp"
+                    android:lineSpacingExtra="2dp"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnGrantMusicAudio"
+                    style="@style/Widget.Material3.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="46dp"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/btn_grant_permission"
+                    android:textColor="@android:color/white"
+                    android:textStyle="bold"
+                    android:textSize="13sp"
+                    android:backgroundTint="@color/accent_teal"
+                    app:cornerRadius="12dp"/>
+            </LinearLayout>
 
             <!-- Step 3: Exact Alarms (Android 12+) -->
-            <androidx.cardview.widget.CardView
+            <LinearLayout
                 android:id="@+id/cardExactAlarm"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                app:cardBackgroundColor="@color/glass_card_bg">
+                android:layout_marginTop="10dp"
+                android:orientation="vertical"
+                android:background="@drawable/guide_card_bg"
+                android:padding="14dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="20dp">
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
                     <TextView
+                        android:id="@+id/badgeStep3"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/label_step_exact"
-                        android:textColor="@color/text_primary"
+                        android:text="STEP 3"
+                        android:textColor="@color/accent_teal"
+                        android:textSize="10sp"
                         android:textStyle="bold"
-                        android:textSize="16sp" />
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="3dp"
+                        android:background="@drawable/step_badge_bg"/>
+
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"/>
 
                     <TextView
                         android:id="@+id/tvExactStatus"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
                         android:text="@string/status_required"
                         android:textColor="@color/snooze_orange"
-                        android:textSize="12sp"
-                        android:textStyle="bold" />
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="3dp"
+                        android:background="@drawable/status_pill_background"/>
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/label_step_exact"
+                    android:textColor="@color/text_primary"
+                    android:textSize="15sp"
+                    android:textStyle="bold"/>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="@string/desc_exact_alarm"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp"
+                    android:lineSpacingExtra="2dp"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnExactAlarm"
+                    style="@style/Widget.Material3.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="46dp"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/btn_grant_permission"
+                    android:textColor="@android:color/white"
+                    android:textStyle="bold"
+                    android:textSize="13sp"
+                    android:backgroundTint="@color/accent_teal"
+                    app:cornerRadius="12dp"/>
+            </LinearLayout>
+
+            <!-- Step 4: Display Over Other Apps -->
+            <LinearLayout
+                android:id="@+id/cardOverlayPerm"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:orientation="vertical"
+                android:background="@drawable/guide_card_bg"
+                android:padding="14dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
                     <TextView
+                        android:id="@+id/badgeStep4"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="@string/desc_exact_alarm"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="13sp" />
+                        android:text="STEP 4"
+                        android:textColor="@color/accent_teal"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="3dp"
+                        android:background="@drawable/step_badge_bg"/>
 
-                    <Button
-                        android:id="@+id/btnExactAlarm"
-                        android:layout_width="match_parent"
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"/>
+
+                    <TextView
+                        android:id="@+id/tvOverlayStatus"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:text="@string/btn_grant_permission"
-                        android:backgroundTint="@color/accent_teal"
-                        android:textAllCaps="false" />
+                        android:text="@string/status_pending"
+                        android:textColor="@color/snooze_orange"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="3dp"
+                        android:background="@drawable/status_pill_background"/>
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/label_step_overlay"
+                    android:textColor="@color/text_primary"
+                    android:textSize="15sp"
+                    android:textStyle="bold"/>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="@string/desc_overlay_perm"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp"
+                    android:lineSpacingExtra="2dp"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnGrantOverlay"
+                    style="@style/Widget.Material3.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="46dp"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/btn_grant_permission"
+                    android:textColor="@android:color/white"
+                    android:textStyle="bold"
+                    android:textSize="13sp"
+                    android:backgroundTint="@color/accent_teal"
+                    app:cornerRadius="12dp"/>
+            </LinearLayout>
+
+            <!-- Step 5: Unused App Settings / Pause App Activity -->
+            <LinearLayout
+                android:id="@+id/cardUnusedAppPerm"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:orientation="vertical"
+                android:background="@drawable/guide_card_bg"
+                android:padding="14dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:id="@+id/badgeStep5"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="STEP 5"
+                        android:textColor="@color/accent_teal"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="3dp"
+                        android:background="@drawable/step_badge_bg"/>
+
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"/>
+
+                    <TextView
+                        android:id="@+id/tvUnusedAppStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/status_pending"
+                        android:textColor="@color/snooze_orange"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="3dp"
+                        android:background="@drawable/status_pill_background"/>
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/label_step_unused_app"
+                    android:textColor="@color/text_primary"
+                    android:textSize="15sp"
+                    android:textStyle="bold"/>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="@string/desc_unused_app_perm"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp"
+                    android:lineSpacingExtra="2dp"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnDisableUnusedApp"
+                    style="@style/Widget.Material3.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="46dp"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/btn_turn_off_unused_app"
+                    android:textColor="@android:color/white"
+                    android:textStyle="bold"
+                    android:textSize="13sp"
+                    android:backgroundTint="@color/accent_teal"
+                    app:cornerRadius="12dp"/>
+            </LinearLayout>
+
+            <!-- Step 6: Battery Optimization -->
+            <LinearLayout
+                android:id="@+id/cardBatteryOpt"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:orientation="vertical"
+                android:background="@drawable/guide_card_bg"
+                android:padding="14dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:id="@+id/badgeStep6"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="STEP 6"
+                        android:textColor="@color/accent_teal"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="3dp"
+                        android:background="@drawable/step_badge_bg"/>
+
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"/>
+
+                    <TextView
+                        android:id="@+id/tvBatteryStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/status_pending"
+                        android:textColor="@color/snooze_orange"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="3dp"
+                        android:background="@drawable/status_pill_background"/>
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/label_step_battery"
+                    android:textColor="@color/text_primary"
+                    android:textSize="15sp"
+                    android:textStyle="bold"/>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="@string/desc_battery_opt"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp"
+                    android:lineSpacingExtra="2dp"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnOptimize"
+                    style="@style/Widget.Material3.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="46dp"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/btn_configure_now"
+                    android:textColor="@android:color/white"
+                    android:textStyle="bold"
+                    android:textSize="13sp"
+                    android:backgroundTint="@color/accent_teal"
+                    app:cornerRadius="12dp"/>
+            </LinearLayout>
+
+            <!-- Step 7: Auto-Start (Manufacturer Specific) -->
+            <LinearLayout
+                android:id="@+id/cardAutoStart"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:orientation="vertical"
+                android:background="@drawable/guide_card_bg"
+                android:padding="14dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:id="@+id/badgeStep7"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="STEP 7"
+                        android:textColor="@color/accent_purple"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="3dp"
+                        android:background="@drawable/step_badge_bg"/>
+
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"/>
+
+                    <TextView
+                        android:id="@+id/tvAutoStartStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/status_pending"
+                        android:textColor="@color/snooze_orange"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="3dp"
+                        android:background="@drawable/status_pill_background"/>
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/label_step_autostart"
+                    android:textColor="@color/text_primary"
+                    android:textSize="15sp"
+                    android:textStyle="bold"/>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="@string/desc_autostart"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp"
+                    android:lineSpacingExtra="2dp"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnAutoStart"
+                    style="@style/Widget.Material3.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="46dp"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/btn_open_settings"
+                    android:textColor="@android:color/white"
+                    android:textStyle="bold"
+                    android:textSize="13sp"
+                    android:backgroundTint="@color/accent_purple"
+                    app:cornerRadius="12dp"/>
+            </LinearLayout>
+
+            <!-- Verify Test Section -->
+            <LinearLayout
+                android:id="@+id/cardTestAlarm"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="24dp"
+                android:orientation="vertical"
+                android:background="@drawable/liquid_glass_card"
+                android:padding="14dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/label_verify_setup"
+                    android:textColor="@color/text_primary"
+                    android:textSize="15sp"
+                    android:textStyle="bold"/>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="@string/desc_test_alarm"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp"
+                    android:lineSpacingExtra="2dp"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnTestAlarm"
+                    style="@style/Widget.Material3.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="46dp"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/btn_run_test"
+                    android:textColor="@android:color/white"
+                    android:textStyle="bold"
+                    android:textSize="13sp"
+                    android:backgroundTint="@color/accent_teal"
+                    app:cornerRadius="12dp"/>
+            </LinearLayout>
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <Button
-        android:id="@+id/btnDone"
+    <!-- Bottom Action Button Bar -->
+    <LinearLayout
+        android:id="@+id/bottomButtonContainer"
         android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:layout_margin="24dp"
-        android:text="@string/btn_completed_steps"
-        android:backgroundTint="@color/text_primary"
-        app:layout_constraintBottom_toBottomOf="parent" />
+        android:layout_height="wrap_content"
+        android:padding="12dp"
+        android:background="@color/app_background"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnDone"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:text="@string/btn_completed_steps"
+            android:textColor="@android:color/white"
+            android:textStyle="bold"
+            android:textSize="15sp"
+            android:letterSpacing="0.04"
+            android:backgroundTint="@color/accent_teal"
+            app:cornerRadius="16dp"
+            android:elevation="0dp"/>
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

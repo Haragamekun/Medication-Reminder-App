@@ -1,12 +1,15 @@
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    id("org.jetbrains.kotlin.plugin.serialization")
+    alias(libs.plugins.ksp)
     id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
-    id("com.google.devtools.ksp")
 }
 
 android {
     namespace = "com.example.ocrmedicationapp"
-    compileSdk = 36
+    compileSdk = 35
+    ndkVersion = "27.0.12077973"
 
     defaultConfig {
         applicationId = "com.example.ocrmedicationapp"
@@ -16,6 +19,20 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        ndk {
+            abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86_64")
+        }
+        externalNativeBuild {
+            cmake {
+                arguments += listOf(
+                    "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON",
+                    "-DCMAKE_SHARED_LINKER_FLAGS=-Wl,-z,max-page-size=16384",
+                    "-DCMAKE_EXE_LINKER_FLAGS=-Wl,-z,max-page-size=16384"
+                )
+                cppFlags += "-Wl,-z,max-page-size=16384"
+                cFlags += "-Wl,-z,max-page-size=16384"
+            }
+        }
     }
 
     buildTypes {
@@ -28,13 +45,25 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = "17"
     }
     buildFeatures {
         viewBinding = true
     }
-    compileSdkMinor = 1
+    packaging {
+        jniLibs {
+            useLegacyPackaging = false
+            keepDebugSymbols += "**/*.so"
+        }
+    }
+}
+
+kotlin {
+    jvmToolchain(17)
 }
 
 dependencies {
@@ -45,15 +74,16 @@ dependencies {
     implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.navigation.fragment.ktx)
     implementation(libs.androidx.navigation.ui.ktx)
-    implementation(libs.mlkit.text.recognition)
+    implementation(libs.mlkitTextRecognition)
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.gson)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.lifecycle.livedata.ktx)
     implementation(libs.kotlinx.coroutines.android)
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
     implementation(libs.coil.kt)
     implementation(libs.generativeai)
-    implementation("androidx.core:core-splashscreen:1.0.1")
+    implementation(libs.androidx.core.splashscreen)
     
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.lifecycle)

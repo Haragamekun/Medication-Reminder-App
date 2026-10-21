@@ -1,155 +1,211 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:background="@drawable/dialog_background">
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center_horizontal">
 
-    <LinearLayout
+    <!-- About Content Card (Scrollable) -->
+    <ScrollView
+        android:id="@+id/svAboutCard"
         android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:scrollbars="vertical"
+        android:fillViewport="true"
+        android:background="@drawable/dialog_background">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="20dp"
+            android:paddingVertical="18dp">
+
+            <!-- App Logo -->
+            <ImageView
+                android:id="@+id/ivAboutLogo"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:layout_gravity="center_horizontal"
+                android:src="@mipmap/ic_launcher"
+                android:contentDescription="@string/app_name" />
+
+            <!-- App Title -->
+            <TextView
+                android:id="@+id/tvAboutTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="8dp"
+                android:text="@string/app_name"
+                android:textColor="@color/text_primary"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <!-- Version -->
+            <TextView
+                android:id="@+id/tvAboutVersion"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="2dp"
+                android:text="@string/version_format"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp" />
+
+            <!-- Tagline -->
+            <TextView
+                android:id="@+id/tvAboutTagline"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="6dp"
+                android:text="@string/about_tagline"
+                android:textColor="@color/accent_teal"
+                android:textSize="13sp"
+                android:textStyle="italic" />
+
+            <!-- Description -->
+            <TextView
+                android:id="@+id/tvAboutDescription"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="@string/about_text"
+                android:textColor="@color/text_primary"
+                android:textSize="13sp"
+                android:lineSpacingExtra="2dp" />
+
+            <!-- Features Section -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:layout_marginBottom="6dp"
+                android:text="@string/about_features_title"
+                android:textColor="@color/text_primary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <!-- Feature List with Compound Drawables -->
+            <TextView
+                android:id="@+id/tvFeature1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
+                android:drawablePadding="8dp"
+                app:drawableStartCompat="@drawable/baseline_check_24"
+                app:drawableTint="@color/accent_teal"
+                android:drawableTint="@color/accent_teal"
+                android:text="@string/about_feature_scan"
+                android:textColor="@color/text_primary"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/tvFeature2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
+                android:drawablePadding="8dp"
+                app:drawableStartCompat="@drawable/baseline_check_24"
+                app:drawableTint="@color/accent_teal"
+                android:drawableTint="@color/accent_teal"
+                android:text="@string/about_feature_reminders"
+                android:textColor="@color/text_primary"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/tvFeature3"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
+                android:drawablePadding="8dp"
+                app:drawableStartCompat="@drawable/baseline_check_24"
+                app:drawableTint="@color/accent_teal"
+                android:drawableTint="@color/accent_teal"
+                android:text="@string/about_feature_tracking"
+                android:textColor="@color/text_primary"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/tvFeature4"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
+                android:drawablePadding="8dp"
+                app:drawableStartCompat="@drawable/baseline_check_24"
+                app:drawableTint="@color/accent_teal"
+                android:drawableTint="@color/accent_teal"
+                android:text="@string/about_feature_escalation"
+                android:textColor="@color/text_primary"
+                android:textSize="13sp" />
+
+            <!-- Development Team Section -->
+            <TextView
+                android:id="@+id/tvAboutDevTeamTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:layout_marginBottom="6dp"
+                android:gravity="center"
+                android:textAlignment="center"
+                android:text="@string/about_dev_team_title"
+                android:textColor="@color/text_primary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvAboutDevTeamNames"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:gravity="center"
+                android:textAlignment="center"
+                android:text="@string/about_dev_team_names"
+                android:textColor="@color/text_primary"
+                android:textSize="13sp"
+                android:lineSpacingExtra="2dp" />
+
+            <TextView
+                android:id="@+id/tvAboutDevTeamDescription"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="10dp"
+                android:text="@string/about_dev_team_description"
+                android:textColor="@color/text_primary"
+                android:textSize="12sp"
+                android:lineSpacingExtra="2dp" />
+
+            <!-- Legal Footer -->
+            <TextView
+                android:id="@+id/tvAboutLegal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="10dp"
+                android:text="@string/about_legal"
+                android:textColor="@color/text_hint"
+                android:textSize="11sp" />
+
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- Close Button Outside Card at Bottom-Middle -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnAboutClose"
+        style="@style/Widget.Material3.Button"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="28dp">
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="16dp"
+        android:backgroundTint="@color/accent_teal"
+        android:text="@string/btn_close"
+        android:textColor="@android:color/white"
+        android:textStyle="bold"
+        android:paddingHorizontal="36dp"
+        android:minHeight="44dp"
+        app:cornerRadius="22dp"/>
 
-        <!-- App Logo -->
-        <ImageView
-            android:id="@+id/ivAboutLogo"
-            android:layout_width="96dp"
-            android:layout_height="96dp"
-            android:layout_gravity="center_horizontal"
-            android:src="@mipmap/ic_launcher"
-            android:contentDescription="@string/app_name" />
-
-        <!-- App Title -->
-        <TextView
-            android:id="@+id/tvAboutTitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="16dp"
-            android:text="@string/app_name"
-            android:textColor="@color/text_primary"
-            android:textSize="24sp"
-            android:textStyle="bold" />
-
-        <!-- Version -->
-        <TextView
-            android:id="@+id/tvAboutVersion"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="4dp"
-            android:text="@string/version_format"
-            android:textColor="@color/text_secondary"
-            android:textSize="14sp" />
-
-        <!-- Tagline -->
-        <TextView
-            android:id="@+id/tvAboutTagline"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="12dp"
-            android:text="@string/about_tagline"
-            android:textColor="@color/accent_teal"
-            android:textSize="15sp"
-            android:textStyle="italic" />
-
-        <!-- Description -->
-        <TextView
-            android:id="@+id/tvAboutDescription"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="@string/about_text"
-            android:textColor="@color/text_secondary"
-            android:textSize="15sp"
-            android:lineSpacingExtra="6dp" />
-
-        <!-- Features Section -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:layout_marginBottom="12dp"
-            android:text="@string/about_features_title"
-            android:textColor="@color/text_primary"
-            android:textSize="16sp"
-            android:textStyle="bold" />
-
-        <!-- Feature List with Compound Drawables -->
-        <TextView
-            android:id="@+id/tvFeature1"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:drawablePadding="12dp"
-            app:drawableStartCompat="@drawable/baseline_check_24"
-            android:text="@string/about_feature_scan"
-            android:textColor="@color/text_secondary"
-            android:textSize="14sp"
-            app:tint="@color/accent_teal" />
-
-        <TextView
-            android:id="@+id/tvFeature2"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:drawablePadding="12dp"
-            app:drawableStartCompat="@drawable/baseline_check_24"
-            android:text="@string/about_feature_reminders"
-            android:textColor="@color/text_secondary"
-            android:textSize="14sp"
-            app:tint="@color/accent_teal" />
-
-        <TextView
-            android:id="@+id/tvFeature3"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:drawablePadding="12dp"
-            app:drawableStartCompat="@drawable/baseline_check_24"
-            android:text="@string/about_feature_tracking"
-            android:textColor="@color/text_secondary"
-            android:textSize="14sp"
-            app:tint="@color/accent_teal" />
-
-        <TextView
-            android:id="@+id/tvFeature4"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:drawablePadding="12dp"
-            app:drawableStartCompat="@drawable/baseline_check_24"
-            android:text="@string/about_feature_escalation"
-            android:textColor="@color/text_secondary"
-            android:textSize="14sp"
-            app:tint="@color/accent_teal" />
-
-        <!-- Legal Footer -->
-        <TextView
-            android:id="@+id/tvAboutLegal"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="16dp"
-            android:text="@string/about_legal"
-            android:textColor="@color/text_hint"
-            android:textSize="12sp" />
-
-        <!-- Close Button -->
-        <Button
-            android:id="@+id/btnAboutClose"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="24dp"
-            android:backgroundTint="@color/accent_teal"
-            android:text="@string/btn_close"
-            android:textColor="@android:color/white"
-            android:textStyle="bold"
-            android:paddingHorizontal="40dp"
-            android:minHeight="48dp" />
-
-    </LinearLayout>
-</ScrollView>
+</LinearLayout>

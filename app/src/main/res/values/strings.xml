@@ -17,6 +17,9 @@
     <string name="about_feature_reminders">Customizable medication reminders</string>
     <string name="about_feature_tracking">Medication history and adherence tracking</string>
     <string name="about_feature_escalation">Escalation alerts for missed doses</string>
+    <string name="about_dev_team_title">Development team</string>
+    <string name="about_dev_team_names">Gerard Lee V. Mabunay\nJan Rowel C. Cruzado\nRosebel J. Bernaldo\nApple Joy V. Fernandez\nEllgy Laurence D. Gumban</string>
+    <string name="about_dev_team_description">The development team behind this application consists of Information Technology students committed to building accessible, privacy-focused mobile solutions. Every member contributed specialized skills across mobile UI design, optical character recognition integration, local encrypted storage, and precise schedule notifications. Working collaboratively through every stage of development, the team prioritized user data protection by engineering a complete offline system that processes and stores sensitive medication schedules entirely on your device.</string>
     <string name="btn_close">Close</string>
 
     <string name="desc_home">Home Schedule</string>
@@ -40,7 +43,7 @@
     <string name="title_active_meds">Active Meds</string>
     <string name="title_completed">Completed</string>
     <string name="title_current_schedule">CURRENT SCHEDULE</string>
-    <string name="btn_manual_add">+ Manual Add</string>
+    <string name="btn_manual_add">Manual Add</string>
     <string name="msg_schedule_clear">Schedule Clear</string>
 
     <!-- Scan Overlay -->
@@ -59,14 +62,24 @@
     <string name="msg_check_network">Check your network and try again.</string>
     <string name="desc_no_internet_icon">No Internet Icon</string>
     <string name="desc_search_icon">Search Icon</string>
+    <string name="desc_voice_search">Voice Search</string>
+    <string name="prompt_voice_search">Speak medication name...</string>
+    <string name="status_listening">Listening. . .</string>
 
     <!-- Settings -->
     <string name="title_settings">Settings</string>
     <string name="label_app_theme">App Theme</string>
     <string name="label_notifications">Notification Preferences</string>
+    <string name="section_sound_alerts">SOUND &amp; ALERTS</string>
+    <string name="section_notification_style">NOTIFICATION STYLE</string>
     <string name="pref_sound">System Sound</string>
     <string name="pref_vibrate">Vibrations</string>
     <string name="pref_banners">Lockscreen Banners</string>
+    <string name="pref_banner_title">Banner Notification</string>
+    <string name="pref_banner_badge">(Default)</string>
+    <string name="pref_banner_desc">Top banner overlay with quick TAKEN &amp; SNOOZE actions</string>
+    <string name="pref_fullscreen_title">Full-Screen Alert</string>
+    <string name="pref_fullscreen_desc">Full-screen popup with massive TAKEN &amp; SNOOZE buttons</string>
     <string name="btn_done">Done</string>
     <string name="label_clear_history">Clear History</string>
     <string name="label_export_history">Export History (CSV)</string>
@@ -87,6 +100,8 @@
 
     <!-- Alarm -->
     <string name="alarm_title">Medication Reminder</string>
+    <string name="btn_taken_massive">TAKEN</string>
+    <string name="btn_snooze_massive">SNOOZE</string>
     <string name="btn_i_took_it">I TOOK IT</string>
     <string name="btn_snooze">SNOOZE (15 MIN)</string>
     <string name="btn_dismiss">DISMISS</string>
@@ -115,7 +130,9 @@
     <string name="source_disclaimer">Source: Clinical data retrieved from Drugs.com records</string>
     <string name="title_reliability_guide">Ensure Reliable Reminders</string>
     <string name="desc_reliability_guide">Android often stops background apps to save battery. Follow these steps to ensure your medication alarms always ring.</string>
-    <string name="label_step_battery">Step 1: Disable Battery Optimization</string>
+    <string name="label_step_notification">Step 1: Notification Permission</string>
+    <string name="desc_notification_perm">Required to show you reminders and alerts when it\'s time to take your medicine.</string>
+    <string name="label_step_battery">Step 2: Disable Battery Optimization</string>
     <string name="status_pending">Status: Pending</string>
     <string name="status_optimized">Status: Optimized (Recommended)</string>
     <string name="status_restricted">Status: Restricted</string>
@@ -123,11 +140,11 @@
     <string name="status_required">Status: Required</string>
     <string name="desc_battery_opt">Allow the app to run without restrictions. This prevents the system from \'killing\' your alarms.</string>
     <string name="btn_configure_now">Configure Now</string>
-    <string name="label_step_autostart">Step 2: Enable Auto-Start</string>
+    <string name="label_step_autostart">Step 3: Enable Auto-Start</string>
     <string name="desc_autostart">Ensure the app can start itself after your phone restarts or when an alarm is due.</string>
     <string name="status_done">Status: Done</string>
     <string name="btn_open_settings">Open Device Settings</string>
-    <string name="label_step_exact">Step 3: Precise Alarm Permission</string>
+    <string name="label_step_exact">Step 4: Precise Alarm Permission</string>
     <string name="desc_exact_alarm">Needed to deliver notifications at the exact second they are due.</string>
     <string name="btn_grant_permission">Grant Permission</string>
     <string name="btn_completed_steps">I\'ve Completed the Steps</string>
@@ -135,6 +152,11 @@
     <string name="btn_view_guide">View Guide</string>
     <string name="status_waiting_step_1">Waiting for Step 1</string>
     <string name="status_waiting_steps_1_2">Waiting for Steps 1 &amp; 2</string>
+    <string name="status_waiting_previous">Waiting for previous steps</string>
+    <string name="label_verify_setup">Verify Setup</string>
+    <string name="desc_test_alarm">Schedule a test alarm to fire in 5 seconds. This confirms that all permissions are working correctly.</string>
+    <string name="btn_run_test">Run 5s Test Alarm</string>
+    <string name="msg_critical_perms_missing">Some critical permissions are missing. Your alarms may not ring unless you complete the setup guide.</string>
     <string name="confirm_title">Are you sure?</string>
     <string name="confirm_default_msg">This action cannot be undone.</string>
     <string name="btn_confirm">Confirm</string>
@@ -143,7 +165,19 @@
     <string name="confirm_delete_msg">Are you sure you want to delete %1$s? This will also cancel all scheduled reminders for it.</string>
     <string name="header_recent_searches">RECENT SEARCHES</string>
     <string name="header_suggestions">SUGGESTIONS</string>
+    <string name="action_edit_medication">Edit Medication</string>
+    <string name="action_delete_medication">Delete Medication</string>
+    <string name="msg_no_results">No matching medicine found</string>
     <string name="btn_view_on_drugs_com">View on Drugs.com</string>
+    <string name="label_step_music_audio">Music &amp; Audio Permission</string>
+    <string name="desc_music_audio_perm">Allows the app to access alarm ringtones and custom audio files so your reminder plays out loud.</string>
+    <string name="label_step_overlay">Display Over Other Apps Permission</string>
+    <string name="desc_overlay_perm">Allows full-screen alarm popups to appear over locked screens or when the app is closed.</string>
+    <string name="label_step_unused_app">Disable "Pause App Activity if Unused"</string>
+    <string name="desc_unused_app_perm">Turn OFF \"Pause app activity if unused\" (or \"Remove permissions if app isn\'t used\") so Android won\'t hibernate the app or reset your permissions when unused.</string>
+    <string name="status_unused_app_disabled">Status: Disabled / Off (Recommended)</string>
+    <string name="status_unused_app_enabled">Status: Active (Turn OFF in Settings)</string>
+    <string name="btn_turn_off_unused_app">Open Settings to Turn OFF</string>
 
 
     <string name="lorem_ipsum">

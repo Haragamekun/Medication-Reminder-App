@@ -20,7 +20,7 @@ class MedicationDetailDialog : DialogFragment() {
 
     override fun onCreateDialog(savedInstanceState: Bundle?): android.app.Dialog {
         val dialog = super.onCreateDialog(savedInstanceState)
-        dialog.window?.setWindowAnimations(android.R.style.Animation_InputMethod)
+        dialog.window?.setWindowAnimations(R.style.BottomSheetSlideAnimation)
         return dialog
     }
 
@@ -42,10 +42,14 @@ class MedicationDetailDialog : DialogFragment() {
         binding.tvDetailName.text = name
         binding.tvDetailForm.text = arguments?.getString("form") ?: "N/A"
         binding.tvDetailIndication.text = arguments?.getString("indication") ?: "N/A"
-        binding.tvDetailAdultDosage.text = arguments?.getString("adultDosage") ?: "N/A"
+        val adultDosage = arguments?.getString("adultDosage")
+        binding.tvDetailAdultDosage.text = if (!adultDosage.isNullOrBlank()) adultDosage else "As prescribed by physician"
         binding.tvDetailPediatricDosage.text = arguments?.getString("pediatricDosage") ?: "N/A"
         binding.tvDetailRoute.text = arguments?.getString("route") ?: "N/A"
-        binding.tvDetailTiming.text = arguments?.getString("timing") ?: "N/A"
+
+        val timing = arguments?.getString("timing")
+        val freq = arguments?.getString("frequency")
+        binding.tvDetailTiming.text = if (!timing.isNullOrBlank()) timing else if (!freq.isNullOrBlank()) freq else "As directed by physician"
         binding.tvDetailSideEffects.text = arguments?.getString("sideEffects") ?: "N/A"
         binding.tvDetailContra.text = arguments?.getString("contraindications") ?: "N/A"
         binding.tvDetailDescription.text = arguments?.getString("description") ?: "No description available."
@@ -70,7 +74,8 @@ class MedicationDetailDialog : DialogFragment() {
         super.onStart()
         dialog?.window?.apply {
             setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-            setWindowAnimations(android.R.style.Animation_Dialog)
+            setWindowAnimations(R.style.BottomSheetSlideAnimation)
+            applyLiquidGlassModalEffect(dimAmount = 0.65f)
         }
     }
 

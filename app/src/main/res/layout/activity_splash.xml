@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0B0F19">
+
+    <!-- Subtle Background Medical Grid & EKG Pattern -->
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:src="@drawable/splash_grid_pattern"
+        android:alpha="0.6"
+        android:contentDescription="@null" />
+
+    <!-- Central Glowing Radiant Halo -->
+    <View
+        android:id="@+id/splashHalo"
+        android:layout_width="320dp"
+        android:layout_height="320dp"
+        android:background="@drawable/splash_glow_halo"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/tvSplashTitleLine1"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintVertical_bias="0.55" />
+
+    <!-- Isolated 3D Graphic Artwork Centered Inside Halo -->
+    <ImageView
+        android:id="@+id/ivSplashLogo"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:adjustViewBounds="true"
+        android:src="@drawable/ic_splash_artwork"
+        android:scaleType="fitCenter"
+        android:contentDescription="@string/app_name"
+        app:layout_constraintTop_toTopOf="@id/splashHalo"
+        app:layout_constraintBottom_toBottomOf="@id/splashHalo"
+        app:layout_constraintStart_toStartOf="@id/splashHalo"
+        app:layout_constraintEnd_toEndOf="@id/splashHalo" />
+
+    <!-- Brand Typography Line 1: Medication -->
+    <TextView
+        android:id="@+id/tvSplashTitleLine1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Medication"
+        android:textColor="#F8FAFC"
+        android:textSize="32sp"
+        android:textStyle="bold"
+        android:letterSpacing="-0.02"
+        android:gravity="center"
+        app:layout_constraintTop_toBottomOf="@id/splashHalo"
+        app:layout_constraintBottom_toTopOf="@id/tvSplashTitleLine2"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintVertical_chainStyle="packed" />
+
+    <!-- Brand Typography Line 2: Reminder App -->
+    <TextView
+        android:id="@+id/tvSplashTitleLine2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Reminder App"
+        android:textColor="#F8FAFC"
+        android:textSize="32sp"
+        android:textStyle="bold"
+        android:letterSpacing="-0.02"
+        android:gravity="center"
+        android:layout_marginTop="2dp"
+        app:layout_constraintTop_toBottomOf="@id/tvSplashTitleLine1"
+        app:layout_constraintBottom_toTopOf="@id/tvSplashTagline"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Tagline: INTELLIGENT HEALTH MANAGER -->
+    <TextView
+        android:id="@+id/tvSplashTagline"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="INTELLIGENT HEALTH MANAGER"
+        android:textColor="#10B981"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.12"
+        android:gravity="center"
+        android:layout_marginTop="12dp"
+        app:layout_constraintTop_toBottomOf="@id/tvSplashTitleLine2"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Bottom Branding Sub-caption: 'from' -->
+    <TextView
+        android:id="@+id/tvSplashFrom"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="from"
+        android:textColor="#94A3B8"
+        android:textSize="12sp"
+        android:gravity="center"
+        android:layout_marginBottom="2dp"
+        app:layout_constraintBottom_toTopOf="@id/tvSplashCompanion"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Bottom Branding Sub-caption: 'Your Trusted Health Companion' -->
+    <TextView
+        android:id="@+id/tvSplashCompanion"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Your Trusted Health Companion"
+        android:textColor="#94A3B8"
+        android:textSize="13sp"
+        android:gravity="center"
+        android:layout_marginBottom="44dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
