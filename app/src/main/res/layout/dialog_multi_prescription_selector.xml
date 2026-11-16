@@ -7,36 +7,46 @@
     android:background="@drawable/dialog_background"
     android:padding="20dp">
 
-    <!-- Header Section -->
-    <RelativeLayout
+    <!-- Header Section with Count Badge -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp">
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="12dp">
 
         <TextView
             android:id="@+id/tvMultiScanHeader"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="2 Medications Detected"
+            android:textColor="@color/text_primary"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvCountBadge"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Multiple prescriptions detected, click which one"
-            android:textColor="@color/text_primary"
-            android:textSize="15sp"
+            android:text="2 DETECTED"
+            android:textColor="@color/accent_teal"
+            android:textSize="11sp"
             android:textStyle="bold"
-            android:layout_alignParentStart="true"
-            android:layout_toStartOf="@id/btnCloseMultiScan"
-            android:layout_centerVertical="true"
-            android:layout_marginEnd="12dp"/>
+            android:background="@drawable/badge_teal_bg"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="4dp"
+            android:layout_marginEnd="10dp" />
 
         <ImageButton
             android:id="@+id/btnCloseMultiScan"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
             android:src="@android:drawable/ic_menu_close_clear_cancel"
             android:background="@drawable/liquid_glass_card"
             app:tint="@color/text_secondary"
-            android:contentDescription="@string/btn_cancel"
-            android:layout_alignParentEnd="true"
-            android:layout_centerVertical="true"/>
-    </RelativeLayout>
+            android:contentDescription="@string/btn_cancel" />
+    </LinearLayout>
 
     <!-- Subtitle Tip -->
     <TextView

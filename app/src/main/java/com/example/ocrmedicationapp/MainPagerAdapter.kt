@@ -19,12 +19,16 @@ import androidx.core.widget.addTextChangedListener
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.material3.MaterialTheme
 import coil.load
 
 class MainPagerAdapter(private val listener: PageActionListener) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private var medications: List<Medication> = emptyList()
     private var historyRecords: List<MedicationRecord> = emptyList()
+    private var calendarRecords: List<CalendarRecord> = emptyList()
     private var onlineItems = mutableListOf<MedInfo>()
     private var searchHistory = emptyList<String>()
     private var suggestion: String? = null
@@ -32,6 +36,8 @@ class MainPagerAdapter(private val listener: PageActionListener) : RecyclerView.
     private var historyPageView: View? = null
 
     interface PageActionListener {
+        fun onSaveOrder(orderedList: List<MedicationItemUi>) {}
+        fun onEditModeChanged(isEditMode: Boolean) {}
         fun onManualAdd()
         fun onMedicationEdit(med: Medication)
         fun onMedicationDelete(med: Medication)
@@ -41,6 +47,7 @@ class MainPagerAdapter(private val listener: PageActionListener) : RecyclerView.
         fun onCatalogFilter(query: String)
         fun onCatalogItemClick(med: MedInfo)
         fun onExportHistory()
+        fun onOpenCalendarView() {}
         fun onToggleTheme(view: View)
         fun onNotificationPrefs()
         fun onReliabilityGuide()
@@ -58,16 +65,20 @@ class MainPagerAdapter(private val listener: PageActionListener) : RecyclerView.
     }
 
     fun updateMeds(newList: List<Medication>) {
+        if (this.medications == newList) return
         this.medications = newList
         homePageView?.let { bindHomePage(it) }
-        historyPageView?.let { bindHistoryPage(it) }
-        notifyDataSetChanged()
     }
 
     fun updateHistoryRecords(records: List<MedicationRecord>) {
         this.historyRecords = records
         historyPageView?.let { bindHistoryPage(it) }
         notifyDataSetChanged()
+    }
+
+    fun updateCalendarRecords(records: List<CalendarRecord>) {
+        this.calendarRecords = records
+        historyPageView?.let { bindHistoryPage(it) }
     }
 
     fun updateOnlineCatalog(newList: List<MedInfo>) {
@@ -145,7 +156,7 @@ class MainPagerAdapter(private val listener: PageActionListener) : RecyclerView.
 
     private fun bindHomePage(view: View) {
         homePageView = view
-        val listContainer = view.findViewById<ViewGroup>(R.id.medicationList)
+        val composeList = view.findViewById<ComposeView>(R.id.composeMedicationList)
         val emptyState = view.findViewById<View>(R.id.emptyStateContainer)
         val tvActive = view.findViewById<TextView>(R.id.tvActiveMedsCount)
         val tvTaken = view.findViewById<TextView>(R.id.tvTakenMedsCount)
@@ -154,49 +165,56 @@ class MainPagerAdapter(private val listener: PageActionListener) : RecyclerView.
         btnManual.addTactileTouchEffect(0.94f)
         btnManual.setOnClickListener { listener.onManualAdd() }
 
-        listContainer.removeAllViews()
         if (medications.isEmpty()) {
             emptyState.visibility = View.VISIBLE
+            composeList?.visibility = View.GONE
         } else {
             emptyState.visibility = View.GONE
-            medications.forEachIndexed { index, med ->
-                val card = LayoutInflater.from(view.context).inflate(R.layout.medication_card_item, listContainer, false)
-                card.addTactileTouchEffect(0.98f)
-                card.findViewById<TextView>(R.id.tvMedName).text = med.name
-                card.findViewById<TextView>(R.id.tvMedDetails).text = med.details
-                card.findViewById<TextView>(R.id.tvMedTime).text = med.time
-                
-                val statusPill = card.findViewById<TextView>(R.id.tvStatusPill)
-                if (med.isTaken) {
-                    statusPill.visibility = View.VISIBLE
-                    statusPill.text = "TAKEN"
-                    statusPill.setTextColor(view.context.getColor(R.color.status_pill_taken_text))
-                    statusPill.backgroundTintList = android.content.res.ColorStateList.valueOf(view.context.getColor(R.color.status_pill_taken))
-                } else {
-                    statusPill.visibility = View.VISIBLE
-                    statusPill.text = "PENDING"
-                    statusPill.setTextColor(view.context.getColor(R.color.status_pill_pending_text))
-                    statusPill.backgroundTintList = android.content.res.ColorStateList.valueOf(view.context.getColor(R.color.status_pill_pending))
-                }
+            composeList?.visibility = View.VISIBLE
 
-                val cb = card.findViewById<ImageView>(R.id.cbTaken)
-                if (med.isTaken) {
-                    cb.setImageResource(R.drawable.ic_checkbox_checked)
-                } else {
-                    cb.setImageResource(R.drawable.ic_checkbox_unchecked)
-                }
-                cb.setOnClickListener {
-                    cb.animateRotatePop()
-                    statusPill.animateSpringPop(1.15f)
-                    listener.onMedicationToggle(index)
-                }
+            composeList?.setViewCompositionStrategy(
+                ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed
+            )
 
-                val btnOpt = card.findViewById<ImageButton>(R.id.btnOptions)
-                btnOpt.addTactileTouchEffect(0.90f)
-                btnOpt.setOnClickListener { btn ->
-                    showActionMenu(btn, med)
+            val uiItems = medications.map { med ->
+                MedicationItemUi(
+                    id = med.id,
+                    name = med.name,
+                    timeSlot = med.time,
+                    quantity = med.quantity,
+                    frequency = med.frequency,
+                    isTaken = med.isTaken
+                )
+            }
+
+            composeList?.setContent {
+                MaterialTheme {
+                    HomeMedicationComposeSection(
+                        items = uiItems,
+                        onSaveOrder = { orderedList ->
+                            listener.onSaveOrder(orderedList)
+                        },
+                        onEditModeChanged = { isEdit ->
+                            listener.onEditModeChanged(isEdit)
+                        },
+                        onToggleTaken = { medId ->
+                            val index = medications.indexOfFirst { it.id == medId }
+                            if (index >= 0) listener.onMedicationToggle(index)
+                        },
+                        onDeleteMeds = { idsToDelete ->
+                            idsToDelete.forEach { id ->
+                                medications.find { it.id == id }?.let { med ->
+                                    listener.onMedicationDelete(med)
+                                }
+                            }
+                        },
+                        onEditMed = { medId ->
+                            medications.find { it.id == medId }?.let { med ->
+                                listener.onMedicationEdit(med)
+                            }
+                        }
+                    )
                 }
-                listContainer.addView(card)
             }
         }
         tvActive.text = medications.size.toString()
@@ -262,6 +280,10 @@ class MainPagerAdapter(private val listener: PageActionListener) : RecyclerView.
         historyPageView = view
         val historyList = view.findViewById<ViewGroup>(R.id.historyList)
         val emptyHistory = view.findViewById<View>(R.id.emptyHistoryContainer)
+        val btnCalendarView = view.findViewById<View>(R.id.btnCalendarView)
+        btnCalendarView?.setOnClickListener {
+            listener.onOpenCalendarView()
+        }
         historyList.removeAllViews()
 
         if (historyRecords.isEmpty()) {
@@ -280,7 +302,7 @@ class MainPagerAdapter(private val listener: PageActionListener) : RecyclerView.
                     setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 12f)
                     typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD)
                     letterSpacing = 0.1f
-                    setPadding(0, (16 * resources.displayMetrics.density).toInt(), 0, (8 * resources.displayMetrics.density).toInt())
+                    setPadding(0, (6 * resources.displayMetrics.density).toInt(), 0, (6 * resources.displayMetrics.density).toInt())
                 }
                 historyList.addView(headerTv)
 
@@ -502,11 +524,18 @@ class MainPagerAdapter(private val listener: PageActionListener) : RecyclerView.
                         }
                         tvSub.text = subText
                     }
-                    holder.itemView.findViewById<ImageView>(R.id.ivMedImage).load(item.imageUrl) {
+                    val resolvedUrl = PrescriptionViewModel.resolveMedicineImage(item.name, item.imageUrl)
+                    holder.itemView.findViewById<ImageView>(R.id.ivMedImage).load(resolvedUrl) {
                         crossfade(true)
-                        placeholder(android.R.drawable.ic_menu_gallery)
+                        placeholder(R.drawable.card_background)
+                        error(R.drawable.card_background)
                     }
-                    holder.itemView.setOnClickListener { listener.onCatalogItemClick(item) }
+                    holder.itemView.setOnClickListener {
+                        onlinePageView?.findViewById<EditText>(R.id.etOnlineSearch)?.let { et ->
+                            listener.hideKeyboard(et)
+                        }
+                        listener.onCatalogItemClick(item)
+                    }
                 }
 
                 override fun getItemCount(): Int = onlineItems.size
@@ -565,6 +594,10 @@ class MainPagerAdapter(private val listener: PageActionListener) : RecyclerView.
                 }
 
                 v.setOnClickListener {
+                    onlinePageView?.findViewById<EditText>(R.id.etOnlineSearch)?.let { et ->
+                        et.setText(name)
+                        listener.hideKeyboard(et)
+                    }
                     listener.onOnlineSearch(name)
                     // Hide flyout and dismiss overlay
                     onlinePageView?.findViewById<View>(R.id.cardFlyoutSuggestions)?.visibility = View.GONE

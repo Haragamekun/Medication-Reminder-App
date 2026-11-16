@@ -56,6 +56,8 @@ fun View.applyLiquidGlassBackdrop(blurRadius: Float = 25f) {
  */
 fun View.addTactileTouchEffect(scaleDown: Float = 0.96f) {
     setOnTouchListener { v, event ->
+        v.pivotX = v.width / 2f
+        v.pivotY = v.height / 2f
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
                 v.animate()

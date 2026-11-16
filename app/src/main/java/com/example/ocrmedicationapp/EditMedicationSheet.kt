@@ -75,6 +75,17 @@ class EditMedicationSheet(
 
     override fun onStart() {
         super.onStart()
+        dialog?.let { dialog ->
+            val bottomSheet = dialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
+            bottomSheet?.let { sheet ->
+                val behavior = com.google.android.material.bottomsheet.BottomSheetBehavior.from(sheet)
+                behavior.state = com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED
+                behavior.skipCollapsed = true
+
+                val displayMetrics = resources.displayMetrics
+                sheet.layoutParams.height = (displayMetrics.heightPixels * 0.88f).toInt()
+            }
+        }
         dialog?.window?.apply {
             setWindowAnimations(R.style.BottomSheetSlideAnimation)
             applyLiquidGlassModalEffect(dimAmount = 0.60f)
@@ -166,22 +177,18 @@ class EditMedicationSheet(
         }
         selectedFrequencyCountLabel = "$selectedFrequencyCount ${if (selectedFrequencyCount == 1) "time" else "times"} a day"
 
-        selectedRepeatLabel = when {
-            lowerFreq.contains("only once") -> {
-                if (initialFreq.contains("•")) {
-                    initialFreq.substringAfter("•").trim()
-                } else {
-                    initialFreq.trim()
-                }
+        if (initialFreq.contains("•")) {
+            val parts = initialFreq.split("•").map { it.trim() }
+            if (parts.size >= 2 && parts[1].isNotBlank()) {
+                selectedRepeatLabel = parts[1]
             }
-            lowerFreq.contains("week") -> {
-                if (initialFreq.contains("•")) {
-                    initialFreq.substringAfter("•").trim()
-                } else {
-                    initialFreq.trim()
-                }
+            if (parts.size >= 1 && parts[0].isNotBlank()) {
+                selectedFrequencyCountLabel = parts[0]
             }
-            else -> "Every day"
+        } else if (initialFreq.isNotBlank()) {
+            selectedRepeatLabel = initialFreq.trim()
+        } else {
+            selectedRepeatLabel = "Every day"
         }
     }
 

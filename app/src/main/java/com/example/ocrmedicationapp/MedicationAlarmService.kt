@@ -36,14 +36,20 @@ class MedicationAlarmService : Service(), AudioManager.OnAudioFocusChangeListene
         val isTest = intent?.getBooleanExtra("is_test", false) ?: false
 
         if (intent?.action == "STOP_ALARM") {
-            ReliabilityUtils.cancelPendingAlarms(this, medName, medId)
             val repository = MedicationRepository(applicationContext)
             CoroutineScope(Dispatchers.IO).launch {
                 val medications = repository.getMedications()
                 val targetMed = medications.find { (medId != null && it.id == medId) || it.name.equals(medName, ignoreCase = true) }
-                if (targetMed != null) {
-                    val now = System.currentTimeMillis()
-                    repository.recordMissed(targetMed, now, medTime)
+                repository.markAllMissedForTimeSlot(targetMed, medTime)
+
+                val sameTimeMeds = if (!medTime.isNullOrBlank()) {
+                    medications.filter { med ->
+                        med.time.split(",").map { it.trim() }.any { it.equals(medTime.trim(), ignoreCase = true) }
+                    }
+                } else listOfNotNull(targetMed)
+
+                sameTimeMeds.forEach { m ->
+                    ReliabilityUtils.cancelPendingAlarms(applicationContext, m.name, m.id)
                 }
             }
             stopForeground(STOP_FOREGROUND_REMOVE)
@@ -52,21 +58,24 @@ class MedicationAlarmService : Service(), AudioManager.OnAudioFocusChangeListene
         }
 
         if (intent?.action == "ACTION_TAKEN") {
-            ReliabilityUtils.cancelPendingAlarms(this, medName, medId)
             val repository = MedicationRepository(applicationContext)
             CoroutineScope(Dispatchers.IO).launch {
                 val medications = repository.getMedications()
                 val targetMed = medications.find { (medId != null && it.id == medId) || it.name.equals(medName, ignoreCase = true) }
-                if (targetMed != null) {
-                    val now = System.currentTimeMillis()
-                    val updated = targetMed.copy(isTaken = true, takenTimestamp = now)
-                    repository.updateMedication(updated)
-                    repository.recordIntake(updated, now, medTime)
+                repository.markAllTakenForTimeSlot(targetMed, medTime)
+
+                val sameTimeMeds = if (!medTime.isNullOrBlank()) {
+                    medications.filter { med ->
+                        med.time.split(",").map { it.trim() }.any { it.equals(medTime.trim(), ignoreCase = true) }
+                    }
+                } else listOfNotNull(targetMed)
+
+                val prefs = getSharedPreferences("med_status", MODE_PRIVATE)
+                sameTimeMeds.forEach { m ->
+                    prefs.edit { putBoolean("taken_${m.name}", true) }
+                    ReliabilityUtils.cancelPendingAlarms(applicationContext, m.name, m.id)
                 }
             }
-            val prefs = getSharedPreferences("med_status", MODE_PRIVATE)
-            prefs.edit { putBoolean("taken_$medName", true) }
-
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
             return START_NOT_STICKY
@@ -158,9 +167,36 @@ class MedicationAlarmService : Service(), AudioManager.OnAudioFocusChangeListene
     private fun showNotification(medName: String, medId: String?, medTime: String?, isTest: Boolean) {
         val channelId = "medication_reminders_high"
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        
-        val title = if (isTest) "Medication App: TEST ALARM" else "Time for your Medication!"
-        val body = if (isTest) "This is a test to verify your reminders are working." else "Please take your $medName"
+
+        val repository = MedicationRepository(applicationContext)
+        var sameTimeMeds: List<Medication> = emptyList()
+        runCatching {
+            val all = kotlinx.coroutines.runBlocking(Dispatchers.IO) { repository.getMedications() }
+            val targetMed = all.find { (medId != null && it.id == medId) || it.name.equals(medName, ignoreCase = true) }
+            sameTimeMeds = if (!medTime.isNullOrBlank()) {
+                all.filter { med ->
+                    med.time.split(",").map { it.trim() }.any { it.equals(medTime.trim(), ignoreCase = true) }
+                }
+            } else listOfNotNull(targetMed)
+        }
+
+        val title = if (isTest) "Medication App: TEST ALARM"
+                    else if (sameTimeMeds.size > 1) "Time for your Medications!"
+                    else "Time for your Medication!"
+
+        val bodyText = if (isTest) {
+            "This is a test to verify your reminders are working."
+        } else if (sameTimeMeds.size > 1) {
+            sameTimeMeds.joinToString("\n") { "• ${it.name} (${it.details})" }
+        } else {
+            "Please take your $medName"
+        }
+
+        val summaryText = if (sameTimeMeds.size > 1) {
+            sameTimeMeds.joinToString(", ") { it.name }
+        } else {
+            medName
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
@@ -254,7 +290,8 @@ class MedicationAlarmService : Service(), AudioManager.OnAudioFocusChangeListene
         val builder = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setContentTitle(title)
-            .setContentText(body)
+            .setContentText(summaryText)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(bodyText))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setAutoCancel(false)

@@ -58,11 +58,11 @@ class MedicationDetailDialog : DialogFragment() {
         binding.tvDetailInteractions.text = arguments?.getString("interactions") ?: "N/A"
         binding.tvDetailStorage.text = arguments?.getString("storage") ?: "N/A"
         
-        imageUrl?.let {
-            binding.ivDetailPhoto.load(it) {
-                crossfade(true)
-                placeholder(android.R.drawable.ic_menu_gallery)
-            }
+        val resolvedUrl = PrescriptionViewModel.resolveMedicineImage(name, imageUrl)
+        binding.ivDetailPhoto.load(resolvedUrl) {
+            crossfade(true)
+            placeholder(R.drawable.card_background)
+            error(R.drawable.card_background)
         }
 
         binding.btnBack.setOnClickListener {

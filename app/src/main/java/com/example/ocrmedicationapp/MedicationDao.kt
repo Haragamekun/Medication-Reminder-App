@@ -20,6 +20,9 @@ interface MedicationDao {
     @Update
     suspend fun updateMedications(medications: List<Medication>)
 
+    @Query("UPDATE medications SET displayOrder = :displayOrder WHERE id = :id")
+    suspend fun updateDisplayOrder(id: String, displayOrder: Int)
+
     @Delete
     suspend fun deleteMedication(medication: Medication)
 
@@ -38,4 +41,20 @@ interface MedicationDao {
 
     @Query("DELETE FROM medication_records")
     suspend fun clearAllHistoryRecords()
+
+    // Dedicated Daily Calendar Records (Isolated from clearAllHistoryRecords)
+    @Query("SELECT * FROM daily_calendar_records ORDER BY takenTimestamp DESC")
+    fun getAllCalendarRecords(): Flow<List<CalendarRecord>>
+
+    @Query("SELECT * FROM daily_calendar_records ORDER BY takenTimestamp DESC")
+    suspend fun getAllCalendarRecordsSync(): List<CalendarRecord>
+
+    @Query("SELECT * FROM daily_calendar_records WHERE dateString = :dateStr ORDER BY takenTimestamp ASC")
+    suspend fun getCalendarRecordsForDate(dateStr: String): List<CalendarRecord>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertCalendarRecord(record: CalendarRecord)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertCalendarRecords(records: List<CalendarRecord>)
 }

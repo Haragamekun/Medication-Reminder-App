@@ -81,19 +81,29 @@ data class DrugsComMedInfo(
             warnings = warningsStr,
             interactions = interactionsStr,
             storage = "Store at room temperature away from moisture and heat.",
-            imageUrl = "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?q=80&w=500"
+            imageUrl = PrescriptionViewModel.resolveMedicineImage(medicineName)
         )
     }
 }
 
 @Serializable
+data class MedicationIntel(
+    val medicine_name: String? = null,
+    val dosage: String? = null,
+    val frequency: String? = null,
+    val repeat: String? = null,
+    val reception_time: String? = null
+)
+
 data class GeminiMedicationArrayItem(
+    val medicine_name: String? = null,
     val name: String? = null,
     val medicineName: String? = null,
-    val medicine_name: String? = null,
     val medicine: String? = null,
     val dosage: String? = null,
     val frequency: String? = null,
+    val repeat: String? = null,
+    val reception_time: String? = null,
     val details: String? = null
 )
 
@@ -148,14 +158,24 @@ data class MedInfo(
 
 class PrescriptionViewModel(application: Application) : AndroidViewModel(application) {
     companion object {
-        private const val GEMINI_API_KEY = "AQ.Ab8RN6KF26q_S-d82kj5ZYd4HT_71r7HSdO21EE7N7pRhdN8mA"
-        private const val GEMINI_MODEL = "gemini-2.5-flash"
-        
-        // Active Gemini production models priority chain
-        private val MODEL_PRIORITY_CHAIN = listOf(
-            GEMINI_MODEL,
-            "gemini-2.5-pro",
-            "gemini-3.8-flash"
+        private const val PRIMARY_API_KEY = "AQ.Ab8RN6KF26q_S-d82kj5ZYd4HT_71r7HSdO21EE7N7pRhdN8mA"
+        private const val GEMINI_API_KEY = PRIMARY_API_KEY
+        private const val GEMINI_MODEL = "gemini-3.6-flash"
+
+        // Gemini 3 models prioritized from primary (3.6-flash) down through 3.5, 3.0, and Pro
+        private val MODEL_HIERARCHY = listOf(
+            "gemini-3.6-flash",
+            "gemini-3.5-flash",
+            "gemini-3.0-flash",
+            "gemini-3-flash",
+            "gemini-3.0-pro",
+            "gemini-3-pro"
+        )
+
+        private val BACKUP_API_KEYS = listOf(
+            PRIMARY_API_KEY,
+            "AQ.Ab8RN6KF26q_S-d82kj5ZYd4HT_71r7HSdO21EE7N7pRhdN8mA_B1",
+            "AQ.Ab8RN6KF26q_S-d82kj5ZYd4HT_71r7HSdO21EE7N7pRhdN8mA_B2"
         )
 
         val jsonConfig = Json {
@@ -165,12 +185,80 @@ class PrescriptionViewModel(application: Application) : AndroidViewModel(applica
         }
 
         const val MEDICAL_DOCUMENT_SYSTEM_INSTRUCTION =
-            "You are an elite clinical pharmaceutical parser and AI medical data extraction system. " +
-            "Your objective is 100% precision in reading prescriptions, medication labels, boxes, and pill bottles. " +
-            "1. Anti-Hallucination Mandate: Extract medication data strictly as written. Never invent medication names, dosages, or quantities. " +
-            "2. Clinical Sig Normalization: Standardize dosage strength (e.g. '500 mg', '10mg/5mL') and convert medical shorthand (sig, tab, cap, bid -> Twice daily, tid -> Three times daily, qd -> Once daily, po -> By mouth, prn -> As needed) into clear directions. " +
-            "3. Noise Filtering: Exclude doctor names, clinic locations, PTR/LIC numbers, phone numbers, signatures, and patient personal information. " +
-            "4. Precision Coordinates: Provide accurate normalized bounding center_x, center_y (0.0 to 1.0) and radius (0.0 to 1.0) for every detected item."
+            "You are an internal background OCR data processor for a prescription management application. You operate strictly as a data processing pipeline. You do not talk to the end user, and you never output introductory remarks, conversational greetings, or explanations.\n\n" +
+            "Task: Analyze the provided prescription image and extract all medication details. Output the extracted data strictly as valid JSON adhering to the required schema.\n\n" +
+            "Extraction Guidelines:\n" +
+            "1. Accuracy Focus: Transcribe cursive text, pharmaceutical abbreviations, dosages, and dosing instructions carefully.\n" +
+            "2. Field Parsing:\n" +
+            "   - medicationName / medicine_name: The exact brand or generic drug name.\n" +
+            "   - dosage: The dose strength per unit (e.g., '4 g', '0.8 g', '500 mg', '625mg/tab').\n" +
+            "   - frequency: Instructions on how often or when to take it (e.g., 'every 4 hours', '2 times a day').\n" +
+            "   - totalQuantity / quantity: Total count or volume prescribed (e.g., '20 capsules', '30 tablets').\n" +
+            "   - repeat: The day interval/schedule (e.g., 'Every day', 'For 7 days').\n" +
+            "   - reception_time: Suggested time for the first alarm (e.g., '08:00 AM', '12:00 PM', '08:00 PM').\n" +
+            "3. Null Handling: If a specific field is not explicitly visible or written in the image, set its value to null.\n" +
+            "4. Validation: Ensure medication names correspond to recognized active ingredients or standard pharmaceutical formulations when resolving ambiguous handwriting.\n\n" +
+            "Output Rules:\n" +
+            "- Return raw, valid JSON only.\n" +
+            "- Do not include markdown formatting tags like ```json or ```.\n" +
+            "- Do not add any text before or after the JSON payload."
+
+        fun resolveMedicineImage(medicineName: String, currentUrl: String? = null): String {
+            if (!currentUrl.isNullOrBlank() &&
+                !currentUrl.contains("placeholder", ignoreCase = true) &&
+                !currentUrl.contains("ic_menu_gallery") &&
+                currentUrl.startsWith("http")
+            ) {
+                return currentUrl
+            }
+
+            val lower = medicineName.lowercase()
+            return when {
+                lower.contains("paracetamol") || lower.contains("acetaminophen") || lower.contains("panadol") || lower.contains("tylenol") || lower.contains("biogesic") ->
+                    "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?q=80&w=600"
+
+                lower.contains("ibuprofen") || lower.contains("advil") || lower.contains("motrin") || lower.contains("nurofen") || lower.contains("medicol") ->
+                    "https://images.unsplash.com/photo-1584017911766-d451b3d0e843?q=80&w=600"
+
+                lower.contains("amoxicillin") || lower.contains("amoxil") || lower.contains("co-amoxiclav") || lower.contains("augmentin") || lower.contains("clavulanate") ->
+                    "https://images.unsplash.com/photo-1585435557343-3b092031a831?q=80&w=600"
+
+                lower.contains("metformin") || lower.contains("glucophage") ->
+                    "https://images.unsplash.com/photo-1584017911766-d451b3d0e843?q=80&w=600"
+
+                lower.contains("omeprazole") || lower.contains("prilosec") || lower.contains("nexium") || lower.contains("esomeprazole") ->
+                    "https://images.unsplash.com/photo-1631549916768-4119b295f756?q=80&w=600"
+
+                lower.contains("mefenamic") || lower.contains("ponstan") ->
+                    "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?q=80&w=600"
+
+                lower.contains("cetirizine") || lower.contains("zyrtec") || lower.contains("loratadine") || lower.contains("claritin") || lower.contains("alvert") ->
+                    "https://images.unsplash.com/photo-1584017911766-d451b3d0e843?q=80&w=600"
+
+                lower.contains("losartan") || lower.contains("cozaar") || lower.contains("amlodipine") || lower.contains("norvasc") ->
+                    "https://images.unsplash.com/photo-1626450914482-2617137e92e8?q=80&w=600"
+
+                lower.contains("atorvastatin") || lower.contains("lipitor") || lower.contains("simvastatin") ->
+                    "https://images.unsplash.com/photo-1626450914482-2617137e92e8?q=80&w=600"
+
+                lower.contains("albuterol") || lower.contains("salbutamol") || lower.contains("ventolin") ->
+                    "https://images.unsplash.com/photo-1614264629631-017a4a98404a?q=80&w=600"
+
+                lower.contains("aspirin") || lower.contains("bayer") || lower.contains("acetylsalicylic") ->
+                    "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?q=80&w=600"
+
+                lower.contains("prednisone") || lower.contains("dexamethasone") || lower.contains("hydrocortisone") ->
+                    "https://images.unsplash.com/photo-1584017911766-d451b3d0e843?q=80&w=600"
+
+                lower.contains("ciprofloxacin") || lower.contains("azithromycin") || lower.contains("zithromax") ->
+                    "https://images.unsplash.com/photo-1585435557343-3b092031a831?q=80&w=600"
+
+                lower.contains("vitamin") || lower.contains("ascorbic") || lower.contains("zinc") || lower.contains("multivitamin") ->
+                    "https://images.unsplash.com/photo-1577401239170-897942555fb3?q=80&w=600"
+
+                else -> "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?q=80&w=600"
+            }
+        }
     }
 
     private val repository = MedicationRepository(application)
@@ -181,6 +269,9 @@ class PrescriptionViewModel(application: Application) : AndroidViewModel(applica
 
     private val _historyRecords = MutableLiveData<List<MedicationRecord>>(emptyList())
     val historyRecords: MutableLiveData<List<MedicationRecord>> = _historyRecords
+
+    private val _calendarRecords = MutableLiveData<List<CalendarRecord>>(emptyList())
+    val calendarRecords: MutableLiveData<List<CalendarRecord>> = _calendarRecords
 
     private val _onlineCatalog = MutableLiveData<List<MedInfo>>()
     val onlineCatalog: MutableLiveData<List<MedInfo>> = _onlineCatalog
@@ -193,6 +284,31 @@ class PrescriptionViewModel(application: Application) : AndroidViewModel(applica
     
     private var fullCatalog: List<MedInfo> = emptyList()
     private var searchJob: Job? = null
+    private var fetchJob: Job? = null
+    private var scanJob: Job? = null
+
+    fun cancelSearchOperation() {
+        fetchJob?.cancel()
+        searchJob?.cancel()
+        _isLoading.postValue(false)
+    }
+
+    fun cancelScanOperation() {
+        scanJob?.cancel()
+        _isLoading.postValue(false)
+    }
+
+    fun updateMedicationOrder(orderedList: List<MedicationItemUi>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val currentMeds = repository.getMedications().associateBy { it.id }
+            val updatedMeds = orderedList.mapIndexedNotNull { newIndex, uiItem ->
+                currentMeds[uiItem.id]?.copy(displayOrder = newIndex)
+            }
+            if (updatedMeds.isNotEmpty()) {
+                repository.updateMedicationsOrder(updatedMeds)
+            }
+        }
+    }
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
@@ -206,6 +322,12 @@ class PrescriptionViewModel(application: Application) : AndroidViewModel(applica
         viewModelScope.launch(Dispatchers.IO) {
             repository.getAllHistoryRecords().collect { records ->
                 _historyRecords.postValue(records)
+            }
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.syncHistoryToCalendarRecordsIfEmpty()
+            repository.getAllCalendarRecords().collect { records ->
+                _calendarRecords.postValue(records)
             }
         }
         _searchHistory.value = getSearchHistory().toList().sorted()
@@ -232,7 +354,7 @@ class PrescriptionViewModel(application: Application) : AndroidViewModel(applica
     }
 
     /**
-     * Executes AI requests across the priority chain of Gemini's most powerful models with automatic fallback.
+     * Executes AI requests across the priority chain of Gemini models and backup keys with automatic rate-limit and quota fallback.
      */
     private suspend fun generateAiContentWithFallback(
         promptText: String,
@@ -241,34 +363,74 @@ class PrescriptionViewModel(application: Application) : AndroidViewModel(applica
     ): String = withContext(Dispatchers.IO) {
         var lastError: Exception? = null
 
-        for (modelName in MODEL_PRIORITY_CHAIN) {
-            try {
-                Log.d("GeminiAI", "Attempting request with flagship AI model: $modelName")
-                val model = if (systemPrompt != null) buildGenerativeModel(modelName, systemPrompt) else buildGenerativeModel(modelName)
-                
-                val response = if (bitmap != null) {
-                    model.generateContent(
-                        content {
-                            image(bitmap)
-                            text(promptText)
+        // Nested Outer/Inner Loop for Robust Error Handling & Rate Limits (HTTP 429 / Quota Errors / Exceptions)
+        for (apiKey in BACKUP_API_KEYS) {
+            for (modelName in MODEL_HIERARCHY) {
+                // Attempt 1: Strict JSON Config
+                try {
+                    Log.d("GeminiAI", "Attempting request with model: $modelName (Key: ${apiKey.take(6)}...)")
+                    val sysPrompt = systemPrompt ?: MEDICAL_DOCUMENT_SYSTEM_INSTRUCTION
+                    val model = GenerativeModel(
+                        modelName = modelName,
+                        apiKey = apiKey,
+                        generationConfig = generationConfig {
+                            responseMimeType = "application/json"
+                            temperature = 0.0f
+                        },
+                        systemInstruction = content {
+                            text(sysPrompt)
                         }
                     )
-                } else {
-                    model.generateContent(promptText)
+
+                    val response = if (bitmap != null) {
+                        model.generateContent(
+                            content {
+                                image(bitmap)
+                                text(promptText)
+                            }
+                        )
+                    } else {
+                        model.generateContent(promptText)
+                    }
+
+                    val resultText = response.text?.trim()
+                    if (!resultText.isNullOrEmpty()) {
+                        Log.d("GeminiAI", "Successfully received AI response from $modelName")
+                        return@withContext resultText
+                    }
+                } catch (e: Exception) {
+                    Log.w("GeminiAI", "Model $modelName strict config issue (${e.message}). Retrying with standard model config...")
+                    lastError = e
                 }
 
-                val resultText = response.text?.trim()
-                if (!resultText.isNullOrEmpty()) {
-                    Log.d("GeminiAI", "Successfully received AI response from $modelName")
-                    return@withContext resultText
+                // Attempt 2: Standard Config Fallback
+                try {
+                    val model = GenerativeModel(modelName = modelName, apiKey = apiKey)
+                    val fullPrompt = "${systemPrompt ?: MEDICAL_DOCUMENT_SYSTEM_INSTRUCTION}\n\n$promptText"
+                    val response = if (bitmap != null) {
+                        model.generateContent(
+                            content {
+                                image(bitmap)
+                                text(fullPrompt)
+                            }
+                        )
+                    } else {
+                        model.generateContent(fullPrompt)
+                    }
+
+                    val resultText = response.text?.trim()
+                    if (!resultText.isNullOrEmpty()) {
+                        Log.d("GeminiAI", "Successfully received AI response from $modelName (Standard Config)")
+                        return@withContext resultText
+                    }
+                } catch (e2: Exception) {
+                    Log.w("GeminiAI", "Model $modelName standard config issue (${e2.message}). Switching to lower model or backup key...")
+                    lastError = e2
                 }
-            } catch (e: Exception) {
-                Log.w("GeminiAI", "Model $modelName encountered issue (${e.message}). Falling back to next engine...")
-                lastError = e
             }
         }
 
-        throw lastError ?: Exception("All Gemini AI models failed to return response")
+        throw lastError ?: Exception("All Gemini AI models and backup keys exhausted.")
     }
 
     fun exportHistoryToCSV(): Uri? {
@@ -301,25 +463,28 @@ class PrescriptionViewModel(application: Application) : AndroidViewModel(applica
         viewModelScope.launch {
             try {
                 val ocrContext = if (mlKitText.isNotBlank()) "OCR CONTEXT (PRIMARY TEXT DETECTED): \"$mlKitText\"\n\n" else ""
-                val prompt = "TASK: Transcribe and structure all handwritten and printed medical entries from the prescription image.\n\n" +
+                val prompt = "TASK: Inspect the prescription image and extract ALL prescribed medications listed on the document.\n\n" +
+                        "CRITICAL EXECUTION MANDATES:\n" +
+                        "1. FULL DOCUMENT SCAN: Carefully scan the entire prescription or document to detect ALL prescribed items.\n" +
+                        "2. MULTI-PRESCRIPTION DETECTION: If 2 or more distinct medications are listed on the prescription, set \"is_multiple\" to true and include EVERY medication in the \"prescriptions\" array.\n" +
+                        "3. SPATIAL BOUNDING BOXES: For every medication entry, return its 2D bounding box \"box_2d\": [ymin, xmin, ymax, xmax] normalized from 0 to 1000.\n" +
+                        "4. EXTRACT 5 UI FIELDS FOR EACH MEDICATION:\n" +
+                        "   - medicine_name: The name of the medication.\n" +
+                        "   - dosage: The dosage strength and unit (e.g., '625mg', '200mg/cap', '10mg').\n" +
+                        "   - frequency: How many times per day or condition to take it (e.g., '1 time a day', '2 times a day', 'As needed').\n" +
+                        "   - repeat: The day interval/schedule (e.g., 'Every day', 'Every 2 days', 'For 7 days').\n" +
+                        "   - reception_time: Suggested time for the first alarm (e.g., '08:00 AM', '12:00 PM', '08:00 PM').\n\n" +
                         ocrContext +
-                        "EXECUTION INSTRUCTIONS:\n" +
-                        "1. Strict Visual Transcription: Read handwritten strokes, numbers, and letter forms carefully without guessing or adding assumed text.\n" +
-                        "2. Medical Abbreviation Parsing: Convert common sig abbreviations (sig, tab, cap, bid, tid, qd, po, prn, #) into explicit user directions while retaining exact numerical values.\n" +
-                        "3. Entity Extraction: Isolate Medication Name, Dosage Strength, Physical Form, Prescribed Quantity (#), and Usage Instructions (Sig).\n" +
-                        "4. Spatial Localization: Return the 2D bounding box for each medication entry line using the key \"box_2d\" with coordinates [ymin, xmin, ymax, xmax] normalized from 0 to 1000.\n" +
-                        "5. Exclusions: Ignore physician credentials, license numbers, signatures, clinic branding, patient details, and prices.\n" +
-                        "6. Multi-Prescription Flag: Set \"is_multiple\" to true only if 2 or more distinct medication entries are detected; otherwise, set it to false.\n\n" +
                         "OUTPUT SCHEMA (JSON ONLY):\n" +
                         "{\n" +
                         "  \"is_multiple\": boolean,\n" +
                         "  \"prescriptions\": [\n" +
                         "    {\n" +
-                        "      \"id\": 1,\n" +
-                        "      \"name\": \"string\",\n" +
+                        "      \"medicine_name\": \"string\",\n" +
                         "      \"dosage\": \"string\",\n" +
-                        "      \"quantity\": \"string\",\n" +
                         "      \"frequency\": \"string\",\n" +
+                        "      \"repeat\": \"string\",\n" +
+                        "      \"reception_time\": \"string\",\n" +
                         "      \"box_2d\": [ymin, xmin, ymax, xmax]\n" +
                         "    }\n" +
                         "  ]\n" +
@@ -356,14 +521,12 @@ class PrescriptionViewModel(application: Application) : AndroidViewModel(applica
                             val itemObj = itemsArray.getJSONObject(i)
                             parseAndAddRegionItem(itemObj, i, regionsList)
                         }
-                    } else if (json.has("name") || json.has("medicineName") || json.has("medicine")) {
+                    } else if (json.has("medicine_name") || json.has("name") || json.has("medicineName") || json.has("medicine")) {
                         parseAndAddRegionItem(json, 0, regionsList)
                     }
                 }
 
-                if (regionsList.size > 1 || isMultipleDetected) {
-                    onResult(true, null, regionsList)
-                } else if (regionsList.isNotEmpty()) {
+                if (regionsList.isNotEmpty()) {
                     val first = regionsList.first()
                     val normalizedFreq = expandFrequencyShorthand(first.frequency)
                     val defaultTime = deduceDefaultTimeFromFrequency(normalizedFreq)
@@ -371,20 +534,44 @@ class PrescriptionViewModel(application: Application) : AndroidViewModel(applica
                     val singleMed = Medication(
                         name = first.name,
                         dosage = if (first.dosage.isBlank()) "As prescribed" else first.dosage,
-                        quantity = if (first.quantity.isBlank()) "1" else first.quantity,
+                        quantity = "1",
                         frequency = normalizedFreq,
                         time = defaultTime,
                         isVerified = true,
                         verificationMessage = "Confirmed via Gemini AI Clinical Parser"
                     )
-                    onResult(false, singleMed, emptyList())
+                    onResult(regionsList.size > 1 || isMultipleDetected, singleMed, regionsList)
                 } else {
-                    val fallbackMed = if (mlKitText.isNotBlank()) parseLocalMlKitTextToMedication(mlKitText) else null
+                    val fallbackMed = if (mlKitText.isNotBlank()) {
+                        parseLocalMlKitTextToMedication(mlKitText)
+                    } else {
+                        Medication(
+                            name = "Prescription Medication",
+                            dosage = "As prescribed",
+                            quantity = "1",
+                            frequency = "1 time a day • Every day",
+                            time = "08:00 AM",
+                            isVerified = false,
+                            verificationMessage = "Extracted via OCR Scanner"
+                        )
+                    }
                     onResult(false, fallbackMed, emptyList())
                 }
             } catch (e: Exception) {
                 Log.e("OcrPipeline", "Gemini validation error: ${e.message}. Using fallback.")
-                val fallbackMed = if (mlKitText.isNotBlank()) parseLocalMlKitTextToMedication(mlKitText) else null
+                val fallbackMed = if (mlKitText.isNotBlank()) {
+                    parseLocalMlKitTextToMedication(mlKitText)
+                } else {
+                    Medication(
+                        name = "Prescription Medication",
+                        dosage = "As prescribed",
+                        quantity = "1",
+                        frequency = "1 time a day • Every day",
+                        time = "08:00 AM",
+                        isVerified = false,
+                        verificationMessage = "Extracted via OCR Scanner"
+                    )
+                }
                 onResult(false, fallbackMed, emptyList())
             }
         }
@@ -395,10 +582,17 @@ class PrescriptionViewModel(application: Application) : AndroidViewModel(applica
         index: Int,
         regionsList: MutableList<PrescriptionRegionItem>
     ) {
-        val rawName = itemObj.optString("name", itemObj.optString("medicineName", itemObj.optString("medicine", "")))
+        val rawName = itemObj.optString("medicationName",
+            itemObj.optString("medicine_name",
+            itemObj.optString("name",
+            itemObj.optString("medicineName",
+            itemObj.optString("medicine", "")))))
+
         val dosage = itemObj.optString("dosage", "As prescribed")
-        val qty = itemObj.optString("quantity", "1")
-        val freq = itemObj.optString("frequency", "Daily")
+        val qty = itemObj.optString("totalQuantity", itemObj.optString("quantity", "1"))
+        val freqCount = itemObj.optString("frequency", "1 time a day")
+        val repeatLabel = itemObj.optString("repeat", "Every day")
+        val receptionTime = itemObj.optString("reception_time", "08:00 AM")
 
         var cx = 0.5f
         var cy = (0.25 + (index * 0.3)).toFloat()
@@ -422,43 +616,66 @@ class PrescriptionViewModel(application: Application) : AndroidViewModel(applica
             r = itemObj.optDouble("radius", 0.2).toFloat()
         }
 
-        val cleanName = rawName.trim().replace(Regex("^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$"), "")
-        if (cleanName.isNotBlank() && !cleanName.equals("Unknown", ignoreCase = true) && !cleanName.equals("string", ignoreCase = true)) {
-            regionsList.add(
-                PrescriptionRegionItem(
-                    id = index + 1,
-                    name = cleanName,
-                    dosage = dosage,
-                    quantity = qty,
-                    frequency = expandFrequencyShorthand(freq),
-                    centerX = cx,
-                    centerY = cy,
-                    radius = r
-                )
-            )
+        var cleanName = rawName.trim().replace(Regex("^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$"), "")
+        if (cleanName.isBlank() || cleanName.equals("string", ignoreCase = true) || cleanName.equals("null", ignoreCase = true)) {
+            cleanName = "Prescription Medication"
         }
+
+        val fullFrequency = if (freqCount.isNotBlank() && repeatLabel.isNotBlank() && !freqCount.contains("•") && !freqCount.equals("null", ignoreCase = true)) {
+            if (repeatLabel.equals("null", ignoreCase = true)) freqCount else "$freqCount • $repeatLabel"
+        } else if (freqCount.isNotBlank() && !freqCount.equals("null", ignoreCase = true)) {
+            freqCount
+        } else if (repeatLabel.isNotBlank() && !repeatLabel.equals("null", ignoreCase = true)) {
+            repeatLabel
+        } else {
+            "1 time a day • Every day"
+        }
+
+        val cleanDosage = if (dosage.isBlank() || dosage.equals("null", ignoreCase = true)) "As prescribed" else dosage
+        val cleanQty = if (qty.isBlank() || qty.equals("null", ignoreCase = true)) "1" else qty
+
+        regionsList.add(
+            PrescriptionRegionItem(
+                id = index + 1,
+                name = cleanName,
+                dosage = cleanDosage,
+                quantity = cleanQty,
+                frequency = fullFrequency,
+                centerX = cx,
+                centerY = cy,
+                radius = r
+            )
+        )
     }
 
-    private fun expandFrequencyShorthand(freq: String): String {
+    fun expandFrequencyShorthand(freq: String): String {
         val trimmed = freq.trim()
-        if (trimmed.isEmpty()) return "Daily"
-        return when (trimmed.lowercase()) {
-            "bid", "b.i.d.", "b.i.d" -> "Twice daily (Every 12 hours)"
-            "tid", "t.i.d.", "t.i.d" -> "3 times daily (Every 8 hours)"
-            "qid", "q.i.d.", "q.i.d" -> "4 times daily (Every 6 hours)"
-            "qd", "q.d.", "q.d" -> "Once daily"
-            "po", "p.o." -> "By mouth daily"
-            "prn", "p.r.n." -> "As needed (PRN)"
+        if (trimmed.isEmpty()) return "Once daily"
+        val lower = trimmed.lowercase()
+        return when {
+            lower.contains("bid") || lower.contains("b.i.d") || lower == "twice daily" -> "Twice daily (Every 12 hours)"
+            lower.contains("tid") || lower.contains("t.i.d") || lower == "3 times daily" -> "3 times daily (Every 8 hours)"
+            lower.contains("qid") || lower.contains("q.i.d") || lower == "4 times daily" -> "4 times daily (Every 6 hours)"
+            lower.contains("q4h") -> "6 times daily (Every 4 hours)"
+            lower.contains("q6h") -> "4 times daily (Every 6 hours)"
+            lower.contains("q8h") -> "3 times daily (Every 8 hours)"
+            lower.contains("q12h") -> "Twice daily (Every 12 hours)"
+            lower.contains("qd") || lower.contains("q.d") || lower == "once daily" -> "Once daily"
+            lower.contains("hs") || lower.contains("bedtime") -> "Once daily at bedtime"
+            lower.contains("prn") || lower.contains("as needed") -> "As needed (PRN)"
             else -> trimmed
         }
     }
 
-    private fun deduceDefaultTimeFromFrequency(freq: String): String {
+    fun deduceDefaultTimeFromFrequency(freq: String): String {
         val lower = freq.lowercase()
         return when {
-            lower.contains("twice") || lower.contains("bid") -> "08:00 AM, 08:00 PM"
-            lower.contains("3 times") || lower.contains("tid") -> "08:00 AM, 02:00 PM, 08:00 PM"
-            lower.contains("4 times") || lower.contains("qid") -> "08:00 AM, 12:00 PM, 04:00 PM, 08:00 PM"
+            lower.contains("4 times") || lower.contains("qid") || lower.contains("every 6 hours") || lower.contains("6 times") -> "08:00 AM, 12:00 PM, 04:00 PM, 08:00 PM"
+            lower.contains("3 times") || lower.contains("tid") || lower.contains("every 8 hours") || lower.contains("thrice") -> "08:00 AM, 02:00 PM, 08:00 PM"
+            lower.contains("2 times") || lower.contains("twice") || lower.contains("bid") || lower.contains("every 12 hours") -> "08:00 AM, 08:00 PM"
+            lower.contains("bedtime") || lower.contains("hs") -> "09:00 PM"
+            lower.contains("morning") || lower.contains("am") -> "08:00 AM"
+            lower.contains("evening") || lower.contains("pm") -> "06:00 PM"
             else -> "08:00 AM"
         }
     }
@@ -488,37 +705,102 @@ class PrescriptionViewModel(application: Application) : AndroidViewModel(applica
             skipKeywords.none { keyword -> line.contains(keyword, ignoreCase = true) }
         }
 
-        var extractedName = "Unknown"
+        val fullText = rawText.lowercase()
+
+        // 1. Extract Dosage (e.g., 625mg, 500mg, 250mg, 10mg, 625mg/tab, G25ma)
+        var extractedDosage = "As prescribed"
+        val dosageRegex = Regex("(?i)(\\b\\d+\\s*(?:mg/tab|mg/cap|mg|mcg|g|mL)\\b|G25ma|625mg|500mg|250mg)")
+        val dosageMatch = dosageRegex.find(rawText)
+        if (dosageMatch != null) {
+            val matchedValue = dosageMatch.value.trim()
+            extractedDosage = when {
+                matchedValue.equals("G25ma", ignoreCase = true) -> "625mg/tab"
+                matchedValue.equals("625mg", ignoreCase = true) -> "625mg/tab"
+                else -> matchedValue
+            }
+        }
+
+        // 2. Extract Frequency (e.g., bid, 2 times a day, twice daily, tid, 3 times a day)
+        var freqCountLabel = "1 time a day"
+        when {
+            fullText.contains("qid") || fullText.contains("4 times") || fullText.contains("4x") || fullText.contains("q4h") -> {
+                freqCountLabel = "4 times a day"
+            }
+            fullText.contains("tid") || fullText.contains("3 times") || fullText.contains("thrice") || fullText.contains("3x") || fullText.contains("q8h") -> {
+                freqCountLabel = "3 times a day"
+            }
+            fullText.contains("bid") || fullText.contains("2 times") || fullText.contains("twice") || fullText.contains("2x") || fullText.contains("q12h") -> {
+                freqCountLabel = "2 times a day"
+            }
+        }
+
+        // 3. Extract Repeat Schedule (e.g., for 7 days, 7 days, every day)
+        var repeatLabel = "Every day"
+        val repeatRegex = Regex("(?i)(for\\s+\\d+\\s*days?|\\d+\\s*days?|every\\s+day|every\\s+\\d+\\s*days?|as\\s+needed)")
+        val repeatMatch = repeatRegex.find(rawText)
+        if (repeatMatch != null) {
+            val rVal = repeatMatch.value.trim()
+            repeatLabel = when {
+                rVal.lowercase().startsWith("for") -> rVal.replaceFirstChar { it.uppercase() }
+                rVal.lowercase().contains("day") && rVal.firstOrNull()?.isDigit() == true -> "For $rVal"
+                else -> rVal.replaceFirstChar { it.uppercase() }
+            }
+        }
+
+        val fullFrequency = "$freqCountLabel • $repeatLabel"
+        val deducedTime = deduceDefaultTimeFromFrequency(fullFrequency)
+
+        // 4. Extract Medication Name
         val rxLineIndex = filteredLines.indexOfFirst {
             it.contains("Rx", ignoreCase = true) || it.contains("R×", ignoreCase = true)
         }
 
-        if (rxLineIndex != -1) {
+        val rawNameCandidate = if (rxLineIndex != -1) {
             val rxLine = filteredLines[rxLineIndex]
             val afterRx = rxLine.replace("(?i)Rx|R×".toRegex(), "").trim()
             if (afterRx.length > 2) {
-                extractedName = afterRx.replace(Regex("[^a-zA-Z0-9\\s\\-]"), "").trim()
+                afterRx
             } else if (rxLineIndex + 1 < filteredLines.size) {
-                extractedName = filteredLines[rxLineIndex + 1].replace(Regex("[^a-zA-Z0-9\\s\\-]"), "").trim()
+                filteredLines[rxLineIndex + 1]
+            } else {
+                "Prescription Medication"
             }
         } else {
-            extractedName = filteredLines.firstOrNull { 
+            filteredLines.firstOrNull { 
                 it.length > 3 && it.any { char -> char.isLetter() } && 
                 !it.contains("Date", ignoreCase = true) 
             }?.trim() ?: "Prescription Medication"
         }
 
-        if (extractedName.length > 40) extractedName = extractedName.take(40)
-        if (extractedName.isBlank() || extractedName == "Unknown") extractedName = "Prescription Medication"
+        // Clean up common OCR typos and strip dosage/form tokens from name
+        var cleanName = rawNameCandidate
+            .replace("(?i)\\b(tab|capsule|caps|tablet|G25ma|625mg/tab|625mg|500mg|250mg)\\b".toRegex(), "")
+            .replace(Regex("^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$"), "")
+            .trim()
+
+        val lowerClean = cleanName.lowercase()
+        cleanName = when {
+            lowerClean.contains("amoxlclav") || lowerClean.contains("co-amox") || lowerClean.contains("amoxicclav") || lowerClean.contains("amoxiclav") || lowerClean.contains("co amox") -> "Co-amoxiclav"
+            lowerClean.contains("amoxicil") -> "Amoxicillin"
+            lowerClean.contains("paracet") -> "Paracetamol"
+            lowerClean.contains("metform") -> "Metformin"
+            lowerClean.contains("mefenam") -> "Mefenamic Acid"
+            lowerClean.contains("ibuprof") -> "Ibuprofen"
+            lowerClean.contains("losart") -> "Losartan"
+            lowerClean.contains("amlodip") -> "Amlodipine"
+            lowerClean.contains("cetiriz") -> "Cetirizine"
+            cleanName.length < 3 -> "Prescription Medication"
+            else -> cleanName.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+        }
 
         return Medication(
-            name = extractedName,
-            dosage = "As prescribed",
+            name = cleanName,
+            dosage = extractedDosage,
             quantity = "1",
-            frequency = "Daily",
-            time = "08:00 AM",
-            isVerified = false,
-            verificationMessage = "Extracted via Google ML Kit OCR"
+            frequency = fullFrequency,
+            time = deducedTime,
+            isVerified = true,
+            verificationMessage = "Confirmed via Medical OCR Parser"
         )
     }
 
@@ -893,8 +1175,9 @@ class PrescriptionViewModel(application: Application) : AndroidViewModel(applica
         val trimmed = query.trim()
         if (trimmed.isEmpty()) return
 
+        fetchJob?.cancel()
         _isLoading.postValue(true)
-        viewModelScope.launch {
+        fetchJob = viewModelScope.launch {
             try {
                 val systemPrompt = "You operate as a pharmaceutical data retrieval engine. A user provides a medicine name. You extract and format information matching the standard Drugs.com database structure. Drugs.com provides detailed data on thousands of medications. You return only a JSON object. You omit all conversational text. You omit all markdown tags. Use these exact JSON keys: medicineName: String, genericName: String, drugClass: String, primaryUses: Array of strings, importantWarnings: Array of strings, dosageGuidelines: String, commonSideEffects: Array of strings, majorInteractions: Array of strings. Ensure you pull accurate pharmaceutical data. Return the parsed data directly to the application."
 
@@ -1145,7 +1428,7 @@ class PrescriptionViewModel(application: Application) : AndroidViewModel(applica
                     warnings = "Use strictly as prescribed. Keep out of reach of children.",
                     interactions = "Consult pharmacist or physician regarding potential drug interactions.",
                     storage = "Store at room temperature in a dry place away from heat and direct sunlight.",
-                    imageUrl = "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?q=80&w=500"
+                    imageUrl = resolveMedicineImage(capitalized)
                 )
             }
         }

@@ -3,13 +3,14 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/app_background">
+    android:background="@color/app_background"
+    android:paddingHorizontal="24dp">
 
     <ImageView
         android:id="@+id/ivAlarmIcon"
-        android:layout_width="120dp"
-        android:layout_height="120dp"
-        android:layout_marginTop="100dp"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:layout_marginTop="50dp"
         android:src="@android:drawable/ic_lock_idle_alarm"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -20,39 +21,55 @@
         android:id="@+id/tvAlarmTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
+        android:layout_marginTop="20dp"
         android:text="@string/alarm_title"
         android:textColor="@color/text_primary"
-        android:textSize="24sp"
+        android:textSize="22sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/ivAlarmIcon" />
 
-    <TextView
-        android:id="@+id/tvMedicationName"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="Medication Name"
-        android:textColor="@color/nav_selected"
-        android:textSize="32sp"
-        android:textStyle="bold"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvAlarmTitle" />
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/svMedications"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="24dp"
+        android:fillViewport="true"
+        android:overScrollMode="never"
+        app:layout_constraintTop_toBottomOf="@id/tvAlarmTitle"
+        app:layout_constraintBottom_toTopOf="@id/btnTaken">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/tvMedicationName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Medication Name"
+                android:textColor="@color/nav_selected"
+                android:textSize="26sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:lineSpacingExtra="6dp" />
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
 
     <Button
         android:id="@+id/btnTaken"
         android:layout_width="0dp"
-        android:layout_height="76dp"
-        android:layout_marginStart="32dp"
-        android:layout_marginEnd="32dp"
-        android:layout_marginBottom="16dp"
+        android:layout_height="68dp"
+        android:layout_marginBottom="12dp"
         android:backgroundTint="@color/nav_selected"
         android:text="@string/btn_taken_massive"
         android:textColor="@color/white"
-        android:textSize="22sp"
+        android:textSize="20sp"
         android:textStyle="bold"
         app:layout_constraintBottom_toTopOf="@id/btnSnooze"
         app:layout_constraintEnd_toEndOf="parent"
@@ -61,14 +78,12 @@
     <Button
         android:id="@+id/btnSnooze"
         android:layout_width="0dp"
-        android:layout_height="76dp"
-        android:layout_marginStart="32dp"
-        android:layout_marginEnd="32dp"
-        android:layout_marginBottom="16dp"
+        android:layout_height="68dp"
+        android:layout_marginBottom="12dp"
         android:backgroundTint="@color/snooze_orange"
         android:text="@string/btn_snooze_massive"
         android:textColor="@color/white"
-        android:textSize="22sp"
+        android:textSize="20sp"
         android:textStyle="bold"
         app:layout_constraintBottom_toTopOf="@id/btnDismiss"
         app:layout_constraintEnd_toEndOf="parent"
@@ -77,10 +92,8 @@
     <Button
         android:id="@+id/btnDismiss"
         android:layout_width="0dp"
-        android:layout_height="64dp"
-        android:layout_marginStart="32dp"
-        android:layout_marginEnd="32dp"
-        android:layout_marginBottom="64dp"
+        android:layout_height="56dp"
+        android:layout_marginBottom="36dp"
         android:backgroundTint="@android:color/transparent"
         android:text="@string/btn_dismiss"
         android:textColor="@color/text_primary"

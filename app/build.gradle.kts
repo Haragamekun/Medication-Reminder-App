@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    id("org.jetbrains.kotlin.plugin.compose") version "2.2.10"
     id("org.jetbrains.kotlin.plugin.serialization")
     alias(libs.plugins.ksp)
     id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
@@ -53,6 +54,7 @@ android {
     }
     buildFeatures {
         viewBinding = true
+        compose = true
     }
     packaging {
         jniLibs {
@@ -83,6 +85,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
     implementation(libs.coil.kt)
     implementation(libs.generativeai)
+    implementation(libs.lottie)
     implementation(libs.androidx.core.splashscreen)
     
     implementation(libs.androidx.camera.camera2)
@@ -95,6 +98,17 @@ dependencies {
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.core.splashscreen)
+
+    val composeBom = platform("androidx.compose:compose-bom:2024.09.00")
+    implementation(composeBom)
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material-icons-extended")
+    implementation("androidx.compose.animation:animation")
+    implementation("androidx.compose.foundation:foundation")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.activity:activity-compose")
+    implementation("androidx.compose.runtime:runtime-livedata")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

@@ -45,6 +45,24 @@ class MedicationRepository(context: Context) {
         return dao.getAllHistoryRecordsSync()
     }
 
+    // Dedicated Daily Calendar Records (Isolated from Clear History)
+    fun getAllCalendarRecords(): Flow<List<CalendarRecord>> {
+        return dao.getAllCalendarRecords()
+    }
+
+    suspend fun getCalendarRecords(): List<CalendarRecord> {
+        return dao.getAllCalendarRecordsSync()
+    }
+
+    suspend fun getCalendarRecordsForDate(dateStr: String): List<CalendarRecord> {
+        return dao.getCalendarRecordsForDate(dateStr)
+    }
+
+    private fun formatDateString(timestamp: Long): String {
+        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+        return sdf.format(java.util.Date(timestamp))
+    }
+
     suspend fun recordIntake(medication: Medication, timestamp: Long = System.currentTimeMillis(), specificTime: String? = null) {
         val slotTime = if (!specificTime.isNullOrBlank()) specificTime else getClosestSlotTime(medication.time, timestamp)
         val record = MedicationRecord(
@@ -58,6 +76,19 @@ class MedicationRepository(context: Context) {
             status = "TAKEN"
         )
         dao.insertHistoryRecord(record)
+
+        val calendarRecord = CalendarRecord(
+            medicationId = medication.id,
+            name = medication.name,
+            dosage = medication.dosage,
+            quantity = medication.quantity,
+            frequency = medication.frequency,
+            time = slotTime,
+            takenTimestamp = timestamp,
+            status = "TAKEN",
+            dateString = formatDateString(timestamp)
+        )
+        dao.insertCalendarRecord(calendarRecord)
     }
 
     suspend fun recordMissed(medication: Medication, timestamp: Long = System.currentTimeMillis(), specificTime: String? = null) {
@@ -73,6 +104,19 @@ class MedicationRepository(context: Context) {
             status = "MISSED"
         )
         dao.insertHistoryRecord(record)
+
+        val calendarRecord = CalendarRecord(
+            medicationId = medication.id,
+            name = medication.name,
+            dosage = medication.dosage,
+            quantity = medication.quantity,
+            frequency = medication.frequency,
+            time = slotTime,
+            takenTimestamp = timestamp,
+            status = "MISSED",
+            dateString = formatDateString(timestamp)
+        )
+        dao.insertCalendarRecord(calendarRecord)
     }
 
     suspend fun recordSkipped(medication: Medication, timestamp: Long = System.currentTimeMillis(), specificTime: String? = null) {
@@ -88,10 +132,92 @@ class MedicationRepository(context: Context) {
             status = "SKIPPED"
         )
         dao.insertHistoryRecord(record)
+
+        val calendarRecord = CalendarRecord(
+            medicationId = medication.id,
+            name = medication.name,
+            dosage = medication.dosage,
+            quantity = medication.quantity,
+            frequency = medication.frequency,
+            time = slotTime,
+            takenTimestamp = timestamp,
+            status = "SKIPPED",
+            dateString = formatDateString(timestamp)
+        )
+        dao.insertCalendarRecord(calendarRecord)
+    }
+
+    suspend fun syncHistoryToCalendarRecordsIfEmpty() {
+        val existingCalendarRecords = dao.getAllCalendarRecordsSync()
+        if (existingCalendarRecords.isEmpty()) {
+            val historyRecords = dao.getAllHistoryRecordsSync()
+            if (historyRecords.isNotEmpty()) {
+                val calendarRecords = historyRecords.map { h ->
+                    CalendarRecord(
+                        id = h.id,
+                        medicationId = h.medicationId,
+                        name = h.name,
+                        dosage = h.dosage,
+                        quantity = h.quantity,
+                        frequency = h.frequency,
+                        time = h.time,
+                        takenTimestamp = h.takenTimestamp,
+                        status = h.status,
+                        dateString = formatDateString(h.takenTimestamp)
+                    )
+                }
+                dao.insertCalendarRecords(calendarRecords)
+            }
+        }
     }
 
     suspend fun clearHistoryRecords() {
         dao.clearAllHistoryRecords()
+    }
+
+    suspend fun getMedicationsForTimeSlot(timeSlot: String): List<Medication> {
+        val all = dao.getAllMedicationsSync()
+        val targetSlot = timeSlot.trim()
+        if (targetSlot.isBlank()) return emptyList()
+        return all.filter { med ->
+            med.time.split(",").map { it.trim() }.any { it.equals(targetSlot, ignoreCase = true) }
+        }
+    }
+
+    suspend fun markAllTakenForTimeSlot(targetMedication: Medication?, specificTime: String?, timestamp: Long = System.currentTimeMillis()) {
+        val allMeds = dao.getAllMedicationsSync()
+        val targetSlot = if (!specificTime.isNullOrBlank()) specificTime.trim() else targetMedication?.time?.split(",")?.firstOrNull()?.trim()
+
+        val matchingMeds = if (!targetSlot.isNullOrBlank()) {
+            allMeds.filter { med ->
+                med.time.split(",").map { it.trim() }.any { it.equals(targetSlot, ignoreCase = true) }
+            }
+        } else listOfNotNull(targetMedication)
+
+        val finalMeds = if (matchingMeds.isNotEmpty()) matchingMeds else listOfNotNull(targetMedication)
+
+        finalMeds.forEach { med ->
+            val updated = med.copy(isTaken = true, takenTimestamp = timestamp)
+            dao.updateMedication(updated)
+            recordIntake(updated, timestamp, targetSlot)
+        }
+    }
+
+    suspend fun markAllMissedForTimeSlot(targetMedication: Medication?, specificTime: String?, timestamp: Long = System.currentTimeMillis()) {
+        val allMeds = dao.getAllMedicationsSync()
+        val targetSlot = if (!specificTime.isNullOrBlank()) specificTime.trim() else targetMedication?.time?.split(",")?.firstOrNull()?.trim()
+
+        val matchingMeds = if (!targetSlot.isNullOrBlank()) {
+            allMeds.filter { med ->
+                med.time.split(",").map { it.trim() }.any { it.equals(targetSlot, ignoreCase = true) }
+            }
+        } else listOfNotNull(targetMedication)
+
+        val finalMeds = if (matchingMeds.isNotEmpty()) matchingMeds else listOfNotNull(targetMedication)
+
+        finalMeds.forEach { med ->
+            recordMissed(med, timestamp, targetSlot)
+        }
     }
 
     fun getClosestSlotTime(medicationTime: String, timestamp: Long = System.currentTimeMillis()): String {

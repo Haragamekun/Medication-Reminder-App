@@ -39,6 +39,7 @@ import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.DecelerateInterpolator
 import android.graphics.Color
 import android.speech.RecognizerIntent
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.core.view.WindowCompat
@@ -127,6 +128,7 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
                 if (::pagerAdapter.isInitialized) {
                     pagerAdapter.setSearchQuery(spokenText)
                 }
+                showSearchLoadingOverlay()
                 viewModel.fetchMedicationInfo(spokenText)
                 Toast.makeText(this, "Searching: \"$spokenText\"", Toast.LENGTH_SHORT).show()
             }
@@ -221,6 +223,8 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
 
             setupViewPager()
             setupClickListeners()
+            setupBackPressHandler()
+            setupLottieAnimations()
             observeViewModel()
             observeMedIntelligence()
             handleNavigationIntent(intent)
@@ -244,6 +248,9 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
 
     override fun onResume() {
         super.onResume()
+        binding.btnCameraScan.scaleX = 1.0f
+        binding.btnCameraScan.scaleY = 1.0f
+
         activeReliabilityDialogView?.let {
             updateReliabilityModalStatus(it)
         }
@@ -359,7 +366,7 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
     private fun observeMedIntelligence() {
         viewModel.searchEvent.observe(this) { event ->
             val result = event?.getContentIfNotHandled() ?: return@observe
-            binding.loadingOverlay.visibility = View.GONE
+            hideLoadingOverlay()
             when (result) {
                 is SearchEvent.Success -> {
                     binding.mainViewPager.currentItem = 2
@@ -373,6 +380,93 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
                     Toast.makeText(this, result.message, Toast.LENGTH_LONG).show()
                 }
             }
+        }
+    }
+
+    private var isScanningActive = false
+
+    private fun showSearchLoadingOverlay() {
+        isScanningActive = false
+        binding.loadingOverlay.visibility = View.VISIBLE
+        binding.pbSearchingFallback.visibility = View.GONE
+        binding.lottieScanning.visibility = View.GONE
+        binding.tvScanning.visibility = View.GONE
+        binding.lottieSearching.visibility = View.VISIBLE
+        binding.tvSearching.visibility = View.VISIBLE
+        try {
+            binding.lottieSearching.setAnimation(R.raw.searching)
+            binding.lottieSearching.repeatCount = com.airbnb.lottie.LottieDrawable.INFINITE
+            binding.lottieSearching.playAnimation()
+        } catch (e: Exception) {
+            Log.e("LottieError", "Failed to parse searching.json", e)
+            binding.lottieSearching.visibility = View.GONE
+            binding.tvSearching.visibility = View.GONE
+            binding.pbSearchingFallback.visibility = View.VISIBLE
+        }
+    }
+
+    private fun showScanLoadingOverlay() {
+        isScanningActive = true
+        binding.loadingOverlay.visibility = View.VISIBLE
+        binding.pbSearchingFallback.visibility = View.GONE
+        binding.lottieSearching.visibility = View.GONE
+        binding.tvSearching.visibility = View.GONE
+        binding.lottieScanning.visibility = View.VISIBLE
+        binding.tvScanning.visibility = View.VISIBLE
+        try {
+            binding.lottieScanning.setAnimation(R.raw.scanning)
+            binding.lottieScanning.repeatCount = com.airbnb.lottie.LottieDrawable.INFINITE
+            binding.lottieScanning.playAnimation()
+        } catch (e: Exception) {
+            Log.e("LottieError", "Failed to parse scanning.json", e)
+            binding.lottieScanning.visibility = View.GONE
+            binding.tvScanning.visibility = View.GONE
+            binding.pbSearchingFallback.visibility = View.VISIBLE
+        }
+    }
+
+    private fun hideLoadingOverlay() {
+        isScanningActive = false
+        binding.loadingOverlay.visibility = View.GONE
+        binding.lottieSearching.visibility = View.GONE
+        binding.tvSearching.visibility = View.GONE
+        binding.lottieScanning.visibility = View.GONE
+        binding.tvScanning.visibility = View.GONE
+        if (binding.lottieSearching.isAnimating) binding.lottieSearching.cancelAnimation()
+        if (binding.lottieScanning.isAnimating) binding.lottieScanning.cancelAnimation()
+    }
+
+    private fun setupLottieAnimations() {
+        binding.lottieSearching.clearColorFilter()
+        binding.lottieSearching.setFailureListener { throwable ->
+            Log.e("LottieError", "Failed to load searching.json: ${throwable.message}", throwable)
+            binding.lottieSearching.visibility = View.GONE
+            binding.tvSearching.visibility = View.GONE
+            binding.pbSearchingFallback.visibility = View.VISIBLE
+        }
+
+        binding.lottieScanning.clearColorFilter()
+        binding.lottieScanning.setRenderMode(com.airbnb.lottie.RenderMode.SOFTWARE)
+        binding.lottieScanning.setImageAssetDelegate { asset ->
+            try {
+                val fileName = asset.fileName
+                if (!fileName.isNullOrEmpty() && fileName.contains("base64,")) {
+                    val base64Data = fileName.substringAfter("base64,").trim()
+                    val decodedBytes = android.util.Base64.decode(base64Data, android.util.Base64.DEFAULT)
+                    BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+                } else {
+                    null
+                }
+            } catch (e: Exception) {
+                Log.e("LottieError", "Failed to decode Lottie image asset: ${asset.id}", e)
+                null
+            }
+        }
+        binding.lottieScanning.setFailureListener { throwable ->
+            Log.e("LottieError", "Failed to load scanning.json: ${throwable.message}", throwable)
+            binding.lottieScanning.visibility = View.GONE
+            binding.tvScanning.visibility = View.GONE
+            binding.pbSearchingFallback.visibility = View.VISIBLE
         }
     }
 
@@ -403,6 +497,57 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
         })
     }
 
+    override fun onSaveOrder(orderedList: List<MedicationItemUi>) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            viewModel.updateMedicationOrder(orderedList)
+        }
+    }
+
+    private val fastOutSlowInInterpolator = androidx.interpolator.view.animation.FastOutSlowInInterpolator()
+
+    override fun onEditModeChanged(isEditMode: Boolean) {
+        val bottomNavRow = binding.bottomNavRow
+        val scheduleHeader = binding.mainViewPager.findViewById<View>(R.id.scheduleHeaderLayout)
+
+        if (isEditMode) {
+            // Animate bottom navigation bar row sliding down and fading out with smooth Material motion curve
+            bottomNavRow.animate()
+                .translationY(bottomNavRow.height.toFloat() + 300f)
+                .alpha(0f)
+                .setDuration(240)
+                .setInterpolator(fastOutSlowInInterpolator)
+                .start()
+
+            // Animate Current Schedule label & + Manual Add button fading and hiding
+            scheduleHeader?.let { header ->
+                header.animate()
+                    .alpha(0f)
+                    .setDuration(200)
+                    .setInterpolator(fastOutSlowInInterpolator)
+                    .withEndAction { header.visibility = View.GONE }
+                    .start()
+            }
+        } else {
+            // Animate bottom navigation bar row sliding back up into view
+            bottomNavRow.animate()
+                .translationY(0f)
+                .alpha(1f)
+                .setDuration(240)
+                .setInterpolator(fastOutSlowInInterpolator)
+                .start()
+
+            // Animate Current Schedule label & + Manual Add button back into view
+            scheduleHeader?.let { header ->
+                header.visibility = View.VISIBLE
+                header.animate()
+                    .alpha(1f)
+                    .setDuration(200)
+                    .setInterpolator(fastOutSlowInInterpolator)
+                    .start()
+            }
+        }
+    }
+
     override fun onManualAdd() {
         showEditMedicationSheet(Medication(name = "", dosage = "", quantity = "", frequency = "", time = "08:00 AM"), false)
     }
@@ -427,7 +572,8 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
     }
 
     override fun onOnlineSearch(query: String) {
-        binding.loadingOverlay.visibility = View.VISIBLE
+        currentFocus?.let { hideKeyboard(it) }
+        showSearchLoadingOverlay()
         viewModel.fetchMedicationInfo(query)
     }
 
@@ -458,8 +604,9 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
     }
 
     override fun onCatalogItemClick(med: MedInfo) {
+        currentFocus?.let { hideKeyboard(it) }
         if (med.description.isEmpty()) {
-            binding.loadingOverlay.visibility = View.VISIBLE
+            showSearchLoadingOverlay()
             viewModel.fetchMedicationInfo(med.name)
         } else {
             MedicationDetailDialog.newInstance(med)
@@ -487,6 +634,14 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
         } else {
             Toast.makeText(this, "Export failed", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    override fun onOpenCalendarView() {
+        val sheet = CalendarHistorySheet(
+            calendarRecords = viewModel.calendarRecords.value ?: emptyList(),
+            scheduledMedications = viewModel.medicationList.value ?: emptyList()
+        )
+        sheet.show(supportFragmentManager, "CalendarHistorySheet")
     }
 
     override fun onToggleTheme(view: View) {
@@ -1021,6 +1176,13 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
             updateSummaryLabel(selectedMode)
         }
 
+        val btnGeminiChatOption = dialogView.findViewById<View>(R.id.btnGeminiChatOption)
+        btnGeminiChatOption?.addTactileTouchEffect(0.96f)
+        btnGeminiChatOption?.setOnClickListener {
+            dialog.dismiss()
+            startActivity(Intent(this, GeminiLiveChatActivity::class.java))
+        }
+
         dialogView.findViewById<View>(R.id.btnSecretTweaksClose)?.setOnClickListener {
             dialog.dismiss()
         }
@@ -1131,7 +1293,7 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
 
     private fun observeViewModel() {
         viewModel.isLoading.observe(this) { isLoading ->
-            binding.loadingOverlay.visibility = if (isLoading) View.VISIBLE else View.GONE
+            if (isLoading) showSearchLoadingOverlay() else hideLoadingOverlay()
         }
 
         viewModel.medicationList.observe(this) { list ->
@@ -1153,12 +1315,57 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
         viewModel.historyRecords.observe(this) { records ->
             pagerAdapter.updateHistoryRecords(records)
         }
+
+        viewModel.calendarRecords.observe(this) { records ->
+            pagerAdapter.updateCalendarRecords(records)
+            val existingSheet = supportFragmentManager.findFragmentByTag("CalendarHistorySheet") as? CalendarHistorySheet
+            existingSheet?.updateData(records, viewModel.medicationList.value ?: emptyList())
+        }
+    }
+
+    private var backPressedTime: Long = 0
+
+    private fun setupBackPressHandler() {
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                // 1. Check if scan/search loading overlay is active
+                if (binding.loadingOverlay.visibility == View.VISIBLE) {
+                    if (isScanningActive) {
+                        // Cancel optical scan/processing tasks immediately and return directly to Home (tab 0)
+                        viewModel.cancelScanOperation()
+                        hideLoadingOverlay()
+                        binding.mainViewPager.setCurrentItem(0, true)
+                        Toast.makeText(this@MainActivity, "Scan operation canceled", Toast.LENGTH_SHORT).show()
+                    } else {
+                        // Cancel pending search operation immediately and remain on/return to Search page (tab 2, keeping search input query)
+                        viewModel.cancelSearchOperation()
+                        hideLoadingOverlay()
+                        binding.mainViewPager.setCurrentItem(2, true)
+                        Toast.makeText(this@MainActivity, "Search canceled", Toast.LENGTH_SHORT).show()
+                    }
+                    return
+                }
+
+                // 2. Back Navigation to Home from secondary tabs (History, Search, Settings)
+                if (binding.mainViewPager.currentItem != 0) {
+                    binding.mainViewPager.setCurrentItem(0, true)
+                } else {
+                    // 3. Double-Back to Exit on Home Screen
+                    if (backPressedTime + 2000 > System.currentTimeMillis()) {
+                        finish()
+                    } else {
+                        Toast.makeText(this@MainActivity, "Press back again to exit", Toast.LENGTH_SHORT).show()
+                        backPressedTime = System.currentTimeMillis()
+                    }
+                }
+            }
+        })
     }
 
     private fun setupClickListeners() {
-        binding.fabScanContainer.addTactileTouchEffect(0.91f)
-        binding.fabScanContainer.setOnClickListener {
-            showScanOptionsDialog()
+        binding.btnCameraScan.addTactileTouchEffect(0.91f)
+        binding.btnCameraScan.setOnClickListener {
+            showScanSourceDialog()
         }
 
         val navContainers = listOf(
@@ -1174,31 +1381,44 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
                 binding.mainViewPager.currentItem = index
             }
         }
-
-        binding.btnCancelScan.setOnClickListener { binding.cameraGuideOverlay.visibility = View.GONE }
-        binding.btnProceedScan.setOnClickListener {
-            binding.cameraGuideOverlay.visibility = View.GONE
-            showScanSourceDialog()
-        }
-    }
-
-    private fun showScanOptionsDialog() {
-        binding.cameraGuideOverlay.visibility = View.VISIBLE
     }
 
     private fun showScanSourceDialog() {
-        val options = arrayOf("Take Photo with Camera", "Choose from Gallery")
-        AlertDialog.Builder(this)
-            .setTitle("Scan Medication Label")
-            .setItems(options) { _, which ->
-                when (which) {
-                    0 -> checkCameraPermissionAndLaunch()
-                    1 -> openGalleryIntent()
-                }
-            }
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_scan_source, null)
+        val dialog = AlertDialog.Builder(this, R.style.Theme_OCRMedicationApp)
+            .setView(dialogView)
+            .setCancelable(true)
             .create()
-            .apply { applyLiquidGlassModalEffect() }
-            .show()
+
+        dialog.setCanceledOnTouchOutside(true)
+
+        val cardCamera = dialogView.findViewById<View>(R.id.cardOptionCamera)
+        val cardGallery = dialogView.findViewById<View>(R.id.cardOptionGallery)
+        val btnClose = dialogView.findViewById<View>(R.id.btnCloseScanSource)
+
+        cardCamera?.addTactileTouchEffect(0.96f)
+        cardCamera?.setOnClickListener {
+            dialog.dismiss()
+            checkCameraPermissionAndLaunch()
+        }
+
+        cardGallery?.addTactileTouchEffect(0.96f)
+        cardGallery?.setOnClickListener {
+            dialog.dismiss()
+            openGalleryIntent()
+        }
+
+        btnClose?.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.window?.setWindowAnimations(R.style.BottomSheetSlideAnimation)
+        dialog.window?.applyLiquidGlassModalEffect(dimAmount = 0.65f)
+        dialog.show()
+
+        val dialogWidth = (340 * resources.displayMetrics.density).toInt()
+        dialog.window?.setLayout(dialogWidth, android.view.WindowManager.LayoutParams.WRAP_CONTENT)
+        dialog.window?.setGravity(android.view.Gravity.CENTER)
     }
 
     private fun checkCameraPermissionAndLaunch() {
@@ -1328,11 +1548,11 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
 
     private fun processGalleryImage(uri: Uri) {
         try {
-            binding.loadingOverlay.visibility = View.VISIBLE
+            showScanLoadingOverlay()
             val inputStream = contentResolver.openInputStream(uri)
             val bitmap = BitmapFactory.decodeStream(inputStream)
             if (bitmap == null) {
-                binding.loadingOverlay.visibility = View.GONE
+                hideLoadingOverlay()
                 Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show()
                 return
             }
@@ -1350,7 +1570,7 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
                         "mlkit" -> {
                             val mlKitText = wrapper.recognizeText(optimizedBitmap)
                             viewModel.processStandaloneMlKitOcr(mlKitText) { singleMed ->
-                                binding.loadingOverlay.visibility = View.GONE
+                                hideLoadingOverlay()
                                 if (singleMed != null) {
                                     showEditMedicationSheet(singleMed)
                                 } else {
@@ -1359,9 +1579,10 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
                             }
                         }
                         "gemini" -> {
-                            viewModel.processOcrWithGeminiValidation("", visionBitmap) { isMultiple, singleMed, regions ->
-                                binding.loadingOverlay.visibility = View.GONE
-                                if (isMultiple && regions.isNotEmpty()) {
+                            val mlKitText = wrapper.recognizeText(optimizedBitmap)
+                            viewModel.processOcrWithGeminiValidation(mlKitText, visionBitmap) { isMultiple, singleMed, regions ->
+                                hideLoadingOverlay()
+                                if (regions.isNotEmpty()) {
                                     showMultiPrescriptionSelectionDialog(visionBitmap, regions)
                                 } else if (singleMed != null) {
                                     showEditMedicationSheet(singleMed)
@@ -1373,8 +1594,8 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
                         else -> { // "both"
                             val mlKitText = wrapper.recognizeText(optimizedBitmap)
                             viewModel.processOcrWithGeminiValidation(mlKitText, visionBitmap) { isMultiple, singleMed, regions ->
-                                binding.loadingOverlay.visibility = View.GONE
-                                if (isMultiple && regions.isNotEmpty()) {
+                                hideLoadingOverlay()
+                                if (regions.isNotEmpty()) {
                                     showMultiPrescriptionSelectionDialog(visionBitmap, regions)
                                 } else if (singleMed != null) {
                                     showEditMedicationSheet(singleMed)
@@ -1385,13 +1606,13 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
                         }
                     }
                 } catch (e: Exception) {
-                    binding.loadingOverlay.visibility = View.GONE
+                    hideLoadingOverlay()
                     Log.e("OcrPipeline", "Scan error: ${e.message}", e)
                     Toast.makeText(this@MainActivity, "Failed to scan prescription", Toast.LENGTH_SHORT).show()
                 }
             }
         } catch (e: Exception) {
-            binding.loadingOverlay.visibility = View.GONE
+            hideLoadingOverlay()
             Toast.makeText(this, "Failed to process image: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
         }
     }
@@ -1400,14 +1621,23 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
         bitmap: Bitmap,
         regions: List<PrescriptionRegionItem>
     ) {
+        val count = regions.size
+        val notifText = if (count == 1) "🎯 1 Medication Detected! Tap circle to select" else "🎯 $count Medications Detected! Tap a green circle to select"
+        Toast.makeText(this, notifText, Toast.LENGTH_SHORT).show()
+
         val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_multi_prescription_selector, null)
         val dialog = AlertDialog.Builder(this, R.style.Theme_OCRMedicationApp)
             .setView(dialogView)
             .setCancelable(true)
             .create()
 
+        val tvHeader = dialogView.findViewById<TextView>(R.id.tvMultiScanHeader)
+        val tvBadge = dialogView.findViewById<TextView>(R.id.tvCountBadge)
         val btnClose = dialogView.findViewById<View>(R.id.btnCloseMultiScan)
         val overlayView = dialogView.findViewById<PrescriptionCircleOverlayView>(R.id.overlayCircleView)
+
+        tvHeader?.text = if (count == 1) "1 Medication Detected" else "$count Medications Detected"
+        tvBadge?.text = "$count DETECTED"
 
         btnClose.setOnClickListener {
             dialog.dismiss()
@@ -1415,12 +1645,14 @@ class MainActivity : AppCompatActivity(), MainPagerAdapter.PageActionListener {
 
         overlayView.setImageAndRegions(bitmap, regions) { selectedRegion ->
             dialog.dismiss()
+            val normalizedFreq = viewModel.expandFrequencyShorthand(selectedRegion.frequency)
+            val defaultTime = viewModel.deduceDefaultTimeFromFrequency(normalizedFreq)
             val selectedMed = Medication(
                 name = selectedRegion.name,
-                dosage = selectedRegion.dosage,
+                dosage = if (selectedRegion.dosage.isBlank()) "As prescribed" else selectedRegion.dosage,
                 quantity = if (selectedRegion.quantity.isBlank()) "1" else selectedRegion.quantity,
-                frequency = if (selectedRegion.frequency.isBlank()) "Daily" else selectedRegion.frequency,
-                time = "08:00 AM",
+                frequency = if (normalizedFreq.isBlank()) "1 time a day • Every day" else normalizedFreq,
+                time = defaultTime,
                 isVerified = true,
                 verificationMessage = "Selected from multi-prescription scan"
             )

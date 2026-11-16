@@ -47,14 +47,10 @@
     <string name="msg_schedule_clear">Schedule Clear</string>
 
     <!-- Scan Overlay -->
-    <string name="scan_guide_title">Position Prescription</string>
-    <string name="scan_guide_subtitle">Ensure text is clear and within the frame for best results.</string>
     <string name="btn_cancel">Cancel</string>
-    <string name="btn_start_scan">Start Scan</string>
 
     <!-- Loading Overlay -->
-    <string name="loading_main">AI is performing a deep scan...</string>
-    <string name="loading_sub">Deciphering handwriting and cursive. Please wait...</string>
+    <string name="label_searching">Searching...</string>
 
     <!-- Online Search -->
     <string name="hint_search_medicine">Search medicine info...</string>

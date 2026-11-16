@@ -47,16 +47,48 @@ class AlarmActivity : AppCompatActivity() {
         val medTime = intent.getStringExtra("med_time")
         binding.tvMedicationName.text = medName
 
+        lifecycleScope.launch(Dispatchers.IO) {
+            val repository = MedicationRepository(applicationContext)
+            val allMeds = repository.getMedications()
+            val targetMed = allMeds.find { (medId != null && it.id == medId) || it.name.equals(medName, ignoreCase = true) }
+
+            val sameTimeMeds = if (!medTime.isNullOrBlank()) {
+                allMeds.filter { med ->
+                    med.time.split(",").map { it.trim() }.any { it.equals(medTime.trim(), ignoreCase = true) }
+                }
+            } else listOfNotNull(targetMed)
+
+            val displayMeds = if (sameTimeMeds.isNotEmpty()) sameTimeMeds else listOfNotNull(targetMed)
+            val namesText = displayMeds.joinToString("\n") { it.name }
+
+            launch(Dispatchers.Main) {
+                if (displayMeds.size > 1) {
+                    binding.tvAlarmTitle.text = "TIME FOR YOUR MEDICATIONS"
+                    binding.tvMedicationName.text = namesText
+                } else {
+                    binding.tvAlarmTitle.text = getString(R.string.alarm_title)
+                    binding.tvMedicationName.text = displayMeds.firstOrNull()?.name ?: medName
+                }
+            }
+        }
+
         binding.btnDismiss.setOnClickListener {
             stopAlarmService()
-            ReliabilityUtils.cancelPendingAlarms(this, medName, medId)
             lifecycleScope.launch(Dispatchers.IO) {
                 val repository = MedicationRepository(applicationContext)
-                val medications = repository.getMedications()
-                val targetMed = medications.find { (medId != null && it.id == medId) || it.name.equals(medName, ignoreCase = true) }
-                if (targetMed != null) {
-                    val now = System.currentTimeMillis()
-                    repository.recordMissed(targetMed, now, medTime)
+                val allMeds = repository.getMedications()
+                val targetMed = allMeds.find { (medId != null && it.id == medId) || it.name.equals(medName, ignoreCase = true) }
+
+                repository.markAllMissedForTimeSlot(targetMed, medTime)
+
+                val sameTimeMeds = if (!medTime.isNullOrBlank()) {
+                    allMeds.filter { med ->
+                        med.time.split(",").map { it.trim() }.any { it.equals(medTime.trim(), ignoreCase = true) }
+                    }
+                } else listOfNotNull(targetMed)
+
+                sameTimeMeds.forEach { m ->
+                    ReliabilityUtils.cancelPendingAlarms(this@AlarmActivity, m.name, m.id)
                 }
             }
             finish()
@@ -64,20 +96,23 @@ class AlarmActivity : AppCompatActivity() {
 
         binding.btnTaken.setOnClickListener {
             stopAlarmService()
-            ReliabilityUtils.cancelPendingAlarms(this, medName, medId)
-            val prefs = getSharedPreferences("med_status", MODE_PRIVATE)
-            prefs.edit { putBoolean("taken_$medName", true) }
-
-            // Update medication status in database to immediately update app dashboard and history
             lifecycleScope.launch(Dispatchers.IO) {
                 val repository = MedicationRepository(applicationContext)
-                val medications = repository.getMedications()
-                val targetMed = medications.find { (medId != null && it.id == medId) || it.name.equals(medName, ignoreCase = true) }
-                if (targetMed != null) {
-                    val now = System.currentTimeMillis()
-                    val updated = targetMed.copy(isTaken = true, takenTimestamp = now)
-                    repository.updateMedication(updated)
-                    repository.recordIntake(updated, now, medTime)
+                val allMeds = repository.getMedications()
+                val targetMed = allMeds.find { (medId != null && it.id == medId) || it.name.equals(medName, ignoreCase = true) }
+
+                repository.markAllTakenForTimeSlot(targetMed, medTime)
+
+                val sameTimeMeds = if (!medTime.isNullOrBlank()) {
+                    allMeds.filter { med ->
+                        med.time.split(",").map { it.trim() }.any { it.equals(medTime.trim(), ignoreCase = true) }
+                    }
+                } else listOfNotNull(targetMed)
+
+                val prefs = getSharedPreferences("med_status", MODE_PRIVATE)
+                sameTimeMeds.forEach { m ->
+                    prefs.edit { putBoolean("taken_${m.name}", true) }
+                    ReliabilityUtils.cancelPendingAlarms(this@AlarmActivity, m.name, m.id)
                 }
             }
 
@@ -87,7 +122,21 @@ class AlarmActivity : AppCompatActivity() {
 
         binding.btnSnooze.setOnClickListener {
             stopAlarmService()
-            snoozeAlarm(medName, medId, medTime)
+            lifecycleScope.launch(Dispatchers.IO) {
+                val repository = MedicationRepository(applicationContext)
+                val allMeds = repository.getMedications()
+                val targetMed = allMeds.find { (medId != null && it.id == medId) || it.name.equals(medName, ignoreCase = true) }
+
+                val sameTimeMeds = if (!medTime.isNullOrBlank()) {
+                    allMeds.filter { med ->
+                        med.time.split(",").map { it.trim() }.any { it.equals(medTime.trim(), ignoreCase = true) }
+                    }
+                } else listOfNotNull(targetMed)
+
+                sameTimeMeds.forEach { m ->
+                    snoozeAlarm(m.name, m.id, medTime)
+                }
+            }
             finish()
         }
     }

@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
 import androidx.appcompat.app.AppCompatActivity
@@ -57,6 +58,26 @@ class LiveScanActivity : AppCompatActivity() {
         binding.btnFlash.setOnClickListener {
             toggleFlash()
         }
+
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                // Cancel active camera execution & OCR scan tasks immediately
+                try {
+                    cameraExecutor.shutdownNow()
+                } catch (e: Exception) {
+                    Log.e("LiveScanActivity", "Error shutting down executor: ${e.message}")
+                }
+                ocrWrapper.release()
+
+                // Navigate user directly back to the Home/Dashboard screen
+                val intent = Intent(this@LiveScanActivity, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    putExtra("NAVIGATE_TO_TAB", 0) // Home tab
+                }
+                startActivity(intent)
+                finish()
+            }
+        })
 
         binding.btnDone.setOnClickListener {
             val intent = Intent()

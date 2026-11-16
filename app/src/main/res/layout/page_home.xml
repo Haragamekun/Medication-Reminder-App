@@ -138,6 +138,7 @@
             </LinearLayout>
 
             <LinearLayout
+                android:id="@+id/scheduleHeaderLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
@@ -176,10 +177,16 @@
                 android:paddingHorizontal="14dp"/>
             </LinearLayout>
 
+            <androidx.compose.ui.platform.ComposeView
+                android:id="@+id/composeMedicationList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+
             <LinearLayout
                 android:id="@+id/medicationList"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:visibility="gone"
                 android:orientation="vertical"/>
 
             <LinearLayout

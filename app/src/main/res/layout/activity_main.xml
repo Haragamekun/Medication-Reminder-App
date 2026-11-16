@@ -32,27 +32,27 @@
         android:paddingBottom="24dp"
         app:layout_constraintBottom_toBottomOf="parent">
 
-        <!-- Scanner FAB on the Far Right (Camera Scanner in Plus Position) -->
+        <!-- Right Action Button: Camera Scanner FAB (Horizontally aligned with bottomNavCard) -->
         <FrameLayout
-            android:id="@+id/fabScanContainer"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:background="@drawable/fab_scanner_circle_bg"
-            android:contentDescription="@string/desc_scan"
-            android:elevation="0dp"
+            android:id="@+id/btnCameraScan"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:background="@drawable/circle_camera_button_bg"
+            android:elevation="4dp"
             android:clickable="true"
             android:focusable="true"
-            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintTop_toTopOf="@id/bottomNavCard"
+            app:layout_constraintBottom_toBottomOf="@id/bottomNavCard"
             app:layout_constraintEnd_toEndOf="parent">
 
             <ImageView
-                android:id="@+id/fabScan"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
+                android:id="@+id/ivCameraScan"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
                 android:layout_gravity="center"
-                android:src="@android:drawable/ic_menu_camera"
-                app:tint="@color/nav_selected"
-                android:contentDescription="@string/desc_camera_icon" />
+                android:src="@drawable/ic_camera_outlined"
+                app:tint="@color/text_primary"
+                android:contentDescription="@string/desc_scan" />
         </FrameLayout>
 
         <!-- Floating Nav Bar on Left (Groups 4 Navigation Tabs) -->
@@ -67,7 +67,7 @@
             app:strokeColor="@color/glass_stroke"
             app:strokeWidth="1.2dp"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/fabScanContainer"
+            app:layout_constraintEnd_toStartOf="@id/btnCameraScan"
             app:layout_constraintBottom_toBottomOf="parent">
 
             <androidx.constraintlayout.widget.ConstraintLayout
@@ -237,77 +237,7 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- Camera Guide Overlay (Re-styled) -->
-    <FrameLayout
-        android:id="@+id/cameraGuideOverlay"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@color/overlay_background"
-        android:visibility="gone"
-        android:elevation="0dp">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:orientation="vertical"
-            android:padding="30dp"
-            android:gravity="center">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/scan_guide_title"
-                android:textColor="@color/white"
-                android:textSize="20sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="20dp"/>
-
-            <View
-                android:layout_width="280dp"
-                android:layout_height="200dp"
-                android:background="@drawable/scan_frame_border"/>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/scan_guide_subtitle"
-                android:textColor="@color/text_hint"
-                android:textSize="14sp"
-                android:gravity="center"
-                android:layout_marginTop="24dp"
-                android:layout_marginBottom="32dp"/>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:weightSum="2">
-
-                <Button
-                    android:id="@+id/btnCancelScan"
-                    android:layout_width="0dp"
-                    android:layout_height="54dp"
-                    android:layout_weight="1"
-                    android:text="@string/btn_cancel"
-                    android:textColor="@color/white"
-                    android:background="@android:color/transparent"
-                    android:layout_marginEnd="10dp"/>
-
-                <Button
-                    android:id="@+id/btnProceedScan"
-                    android:layout_width="0dp"
-                    android:layout_height="54dp"
-                    android:layout_weight="1"
-                    android:text="@string/btn_start_scan"
-                    android:backgroundTint="@color/accent_teal_dark"
-                    android:textColor="@color/white"
-                    android:textStyle="bold"/>
-            </LinearLayout>
-        </LinearLayout>
-    </FrameLayout>
-
-    <!-- AI Analysis Loading Overlay -->
+    <!-- AI Analysis / Search Loading Overlay -->
     <LinearLayout
         android:id="@+id/loadingOverlay"
         android:layout_width="match_parent"
@@ -316,33 +246,65 @@
         android:gravity="center"
         android:orientation="vertical"
         android:visibility="gone"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         android:elevation="0dp"
         android:clickable="true"
         android:focusable="true">
 
+        <com.airbnb.lottie.LottieAnimationView
+            android:id="@+id/lottieSearching"
+            android:layout_width="140dp"
+            android:layout_height="140dp"
+            android:visibility="gone"
+            android:scaleType="fitCenter"
+            app:lottie_clipToCompositionBounds="false"
+            app:lottie_rawRes="@raw/searching"
+            app:lottie_autoPlay="false"
+            app:lottie_loop="true" />
+
+        <TextView
+            android:id="@+id/tvSearching"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingTop="12dp"
+            android:text="@string/label_searching"
+            android:textColor="#F8FAFC"
+            android:textSize="16sp"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:visibility="gone" />
+
+        <com.airbnb.lottie.LottieAnimationView
+            android:id="@+id/lottieScanning"
+            android:layout_width="160dp"
+            android:layout_height="160dp"
+            android:visibility="gone"
+            android:scaleType="centerInside"
+            app:lottie_clipToCompositionBounds="false"
+            app:lottie_rawRes="@raw/scanning"
+            app:lottie_autoPlay="false"
+            app:lottie_loop="true"
+            app:lottie_renderMode="software" />
+
+        <TextView
+            android:id="@+id/tvScanning"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingTop="12dp"
+            android:text="Scanning for Medications"
+            android:textColor="#F8FAFC"
+            android:textSize="16sp"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:visibility="gone" />
+
         <ProgressBar
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:indeterminateTint="@color/accent_teal_dark" />
-
-        <TextView
-            android:id="@+id/tvLoadingMain"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:text="@string/loading_main"
-            android:textColor="@color/white"
-            android:textSize="18sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/tvLoadingSub"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/loading_sub"
-            android:textColor="@color/text_hint"
-            android:textSize="14sp" />
+            android:id="@+id/pbSearchingFallback"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:indeterminateTint="#F8FAFC"
+            android:visibility="gone" />
     </LinearLayout>
 
     <!-- Circular Reveal View for Theme Animation (Global) -->
